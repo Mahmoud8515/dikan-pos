@@ -176,6 +176,36 @@ function LangToggle({ lang, switchLang }) {
   );
 }
 
+/* ---------- مبدّل الفرع (بتصميم متناسق) ---------- */
+function BranchSwitch({ branches, branchId, switchBranch, isRTLnow }) {
+  const [open, setOpen] = useState(false);
+  const current = branches.find(b => b.id === branchId);
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen(o => !o)} style={branchBtn}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>
+          {current ? current.name : ""}
+        </span>
+        <span style={{ fontSize: 10, color: C.muted, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>{"\u25BC"}</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div style={{ ...branchMenu, [isRTLnow ? "left" : "right"]: 0 }}>
+            {branches.map(b => (
+              <button key={b.id}
+                onClick={() => { switchBranch(b.id); setOpen(false); }}
+                style={{ ...branchItem, background: b.id===branchId ? C.ink : "transparent", color: b.id===branchId ? C.bg : C.ink }}>
+                {b.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ---------- مفتاح بنمط iPhone ---------- */
 function Toggle({ on, onChange }) {
   return (
@@ -340,9 +370,7 @@ function Main({ session, lang, switchLang }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {branches.length > 1 && (
-            <select value={branchId || ""} onChange={(e)=>switchBranch(e.target.value)} style={branchSelect}>
-              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <BranchSwitch branches={branches} branchId={branchId} switchBranch={switchBranch} isRTLnow={isRTL(lang)} />
           )}
           {shop?.pin && unlocked && <button onClick={lockNow} style={signOutBtn}>{t.pinLock}</button>}
           <LangToggle lang={lang} switchLang={switchLang} />
@@ -899,7 +927,9 @@ const logoMark = { width: 42, height: 42, borderRadius: 11, background: C.ink, c
 const langToggle = { display: "flex", gap: 4, background: "#efe9da", borderRadius: 10, padding: 4 };
 const langBtn = { border: "none", borderRadius: 7, padding: "7px 14px", fontWeight: 700, fontSize: 13, transition: "all .15s" };
 const signOutBtn = { border: `1px solid ${C.line}`, background: C.card, color: C.muted, borderRadius: 9, padding: "8px 14px", fontWeight: 700, fontSize: 13 };
-const branchSelect = { border: `1px solid ${C.line}`, background: C.card, color: C.ink, borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const branchBtn = { display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.line}`, background: C.card, color: C.ink, borderRadius: 9, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const branchMenu = { position: "absolute", top: "calc(100% + 6px)", zIndex: 41, background: C.card, border: `1px solid ${C.line}`, borderRadius: 11, padding: 6, minWidth: 170, boxShadow: "0 8px 28px rgba(0,0,0,.16)", display: "flex", flexDirection: "column", gap: 4 };
+const branchItem = { textAlign: "start", border: "none", borderRadius: 8, padding: "10px 12px", fontWeight: 700, fontSize: 14, cursor: "pointer", width: "100%" };
 const nav = { display: "flex", gap: 6, padding: "10px 14px", background: "#efe9da", margin: "12px 14px 0", borderRadius: 14 };
 const main = { padding: "18px 14px 40px", flex: 1, position: "relative" };
 const statCard = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: "20px 18px", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,.04)" };
