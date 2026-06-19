@@ -47,6 +47,7 @@ const T = {
     pinChange: "Koda PIN biguherîne", pinRemove: "Koda PIN rake", pinNew: "Koda nû (4 reqem)",
     pinSaved: "Kod hat tomarkirin", pinLock: "Kilît bike", pinSecurity: "Parastin",
     lockWhich: "Kîjan rûpel bên parastin", lockReports: "Hesab", lockTips: "Baxşîş", lockSettings: "Mîheng",
+    branches: "Şaxe", addBranch: "Şaxek nû", branchName: "Navê şaxê", confirmDelBranch: "Tu dixwazî vê şaxê û hemû daneyên wê jê bibî?", lastBranch: "Divê bi kêmî yek şax hebe",
   },
   ckb: {
     appTitle: "حیسابی دوکان", appSub: "خزمەت، داهات و بەخشیش",
@@ -78,6 +79,7 @@ const T = {
     pinChange: "کۆدی PIN بگۆڕە", pinRemove: "کۆدی PIN لاببە", pinNew: "کۆدی نوێ (٤ ژمارە)",
     pinSaved: "کۆد تۆمار کرا", pinLock: "قوفڵ بکە", pinSecurity: "پاراستن",
     lockWhich: "کام پەڕە بپارێزرێت", lockReports: "حیساب", lockTips: "بەخشیش", lockSettings: "ڕێکخستن",
+    branches: "لقەکان", addBranch: "لقی نوێ", branchName: "ناوی لق", confirmDelBranch: "دڵنیایت لە سڕینەوەی ئەم لقە و هەموو داتاکانی؟", lastBranch: "دەبێت لانیکەم یەک لق هەبێت",
   },
   en: {
     appTitle: "Shop Accounts", appSub: "Services, Revenue & Tips",
@@ -109,6 +111,7 @@ const T = {
     pinChange: "Change PIN", pinRemove: "Remove PIN", pinNew: "New PIN (4 digits)",
     pinSaved: "PIN saved", pinLock: "Lock", pinSecurity: "Security",
     lockWhich: "Which pages to protect", lockReports: "Reports", lockTips: "Tips", lockSettings: "Settings",
+    branches: "Branches", addBranch: "New branch", branchName: "Branch name", confirmDelBranch: "Delete this branch and all its data?", lastBranch: "You must have at least one branch",
   },
 };
 
@@ -252,6 +255,8 @@ function Main({ session, lang, switchLang }) {
   const [tab, setTab] = useState("pos");
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [branchId, setBranchId] = useState(null);
   const [workers, setWorkers] = useState([]);
   const [services, setServices] = useState([]);
   const [sales, setSales] = useState([]);
@@ -259,21 +264,50 @@ function Main({ session, lang, switchLang }) {
   const [unlocked, setUnlocked] = useState(false);   // هل تم فتح القفل هذه الجلسة
   const [pinPrompt, setPinPrompt] = useState(null);   // التبويب المطلوب فتحه
 
-  const loadAll = useCallback(async () => {
+  // تحميل المحل والفروع واختيار الفرع الحالي
+  const loadShopAndBranches = useCallback(async () => {
     const { data: shopData } = await supabase.from("shops").select("*").single();
     setShop(shopData);
+    const { data: br } = await supabase.from("branches").select("*").order("created_at");
+    const list = br || [];
+    setBranches(list);
+    // اختر الفرع المحفوظ، أو أول فرع
+    let saved = null;
+    try { saved = localStorage.getItem("branchId"); } catch (e) {}
+    const chosen = list.find(b => b.id === saved) || list[0];
+    setBranchId(chosen ? chosen.id : null);
+    return chosen ? chosen.id : null;
+  }, []);
+
+  // تحميل بيانات فرع معيّن
+  const loadBranchData = useCallback(async (bid) => {
+    if (!bid) { setWorkers([]); setServices([]); setSales([]); setTips([]); return; }
     const [w, s, sa, ti] = await Promise.all([
-      supabase.from("workers").select("*").eq("active", true).order("created_at"),
-      supabase.from("services").select("*").eq("active", true).order("sort_order"),
-      supabase.from("sales").select("*").order("created_at", { ascending: false }),
-      supabase.from("tips").select("*").order("created_at", { ascending: false }),
+      supabase.from("workers").select("*").eq("active", true).eq("branch_id", bid).order("created_at"),
+      supabase.from("services").select("*").eq("active", true).eq("branch_id", bid).order("sort_order"),
+      supabase.from("sales").select("*").eq("branch_id", bid).order("created_at", { ascending: false }),
+      supabase.from("tips").select("*").eq("branch_id", bid).order("created_at", { ascending: false }),
     ]);
     setWorkers(w.data || []); setServices(s.data || []);
     setSales(sa.data || []); setTips(ti.data || []);
-    setLoading(false);
   }, []);
 
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    const bid = await loadShopAndBranches();
+    await loadBranchData(bid);
+    setLoading(false);
+  }, [loadShopAndBranches, loadBranchData]);
+
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // عند تبديل الفرع
+  const switchBranch = async (bid) => {
+    setBranchId(bid);
+    try { localStorage.setItem("branchId", bid); } catch (e) {}
+    setTab("pos");
+    await loadBranchData(bid);
+  };
 
   const curSym = useMemo(() => CURRENCIES.find(c => c.code === shop?.currency)?.sym || "", [shop]);
   const fmt = useCallback((n) => `${curSym}${new Intl.NumberFormat("en-US").format(Math.round(n*100)/100)}`, [curSym]);
@@ -306,6 +340,11 @@ function Main({ session, lang, switchLang }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {branches.length > 1 && (
+            <select value={branchId || ""} onChange={(e)=>switchBranch(e.target.value)} style={branchSelect}>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          )}
           {shop?.pin && unlocked && <button onClick={lockNow} style={signOutBtn}>{t.pinLock}</button>}
           <LangToggle lang={lang} switchLang={switchLang} />
           <button onClick={() => supabase.auth.signOut()} style={signOutBtn}>{t.signOut}</button>
@@ -318,10 +357,10 @@ function Main({ session, lang, switchLang }) {
         <TabBtn active={tab==="services"} onClick={()=>goTab("services")} label={t.tabServices} locked={PROTECTED.includes("services") && shop?.pin && !unlocked} />
       </nav>
       <main style={main}>
-        {tab==="pos" && <POSPage {...{shop,workers,services,sales,setSales,tips,setTips,t,lang,fmt}} />}
+        {tab==="pos" && <POSPage {...{shop,branchId,workers,services,sales,setSales,tips,setTips,t,lang,fmt}} />}
         {tab==="sales" && <SalesPage {...{sales,setSales,workers,t,lang,fmt}} />}
-        {tab==="tips" && <TipsPage {...{shop,workers,tips,setTips,t,lang,fmt}} />}
-        {tab==="services" && <SettingsPage {...{shop,setShop,workers,setWorkers,services,setServices,t,lang,reload:loadAll}} />}
+        {tab==="tips" && <TipsPage {...{shop,branchId,workers,tips,setTips,t,lang,fmt}} />}
+        {tab==="services" && <SettingsPage {...{shop,setShop,branchId,branches,setBranches,switchBranch,workers,setWorkers,services,setServices,t,lang,reload:loadAll}} />}
       </main>
       {pinPrompt && <PinModal shop={shop} t={t} lang={lang} onUnlock={onUnlock} onCancel={()=>setPinPrompt(null)} />}
     </div>
@@ -360,7 +399,7 @@ function TabBtn({ active, onClick, label, locked }) {
 }
 
 /* ---------- الكاشير ---------- */
-function POSPage({ shop, workers, services, sales, setSales, tips, setTips, t, lang, fmt }) {
+function POSPage({ shop, branchId, workers, services, sales, setSales, tips, setTips, t, lang, fmt }) {
   const [worker, setWorker] = useState(null);
   const [cart, setCart] = useState({});
   const [tip, setTip] = useState("");
@@ -390,13 +429,13 @@ function POSPage({ shop, workers, services, sales, setSales, tips, setTips, t, l
     setBusy(true);
     const items = cartList.map(({s,q})=>({ serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }));
     const { data: sale, error } = await supabase.from("sales").insert({
-      shop_id: shop.id, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
+      shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
     }).select().single();
     if (!error && sale) {
       setSales([sale, ...sales]);
       if (tipNum > 0) {
         const { data: tipRow } = await supabase.from("tips").insert({
-          shop_id: shop.id, worker_id: worker, amount: tipNum, from_sale: true, tip_date: today,
+          shop_id: shop.id, branch_id: branchId, worker_id: worker, amount: tipNum, from_sale: true, tip_date: today,
         }).select().single();
         if (tipRow) setTips([tipRow, ...tips]);
       }
@@ -595,7 +634,7 @@ function SalesPage({ sales, setSales, workers, t, lang, fmt }) {
 }
 
 /* ---------- البخشيش ---------- */
-function TipsPage({ shop, workers, tips, setTips, t, lang, fmt }) {
+function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -608,7 +647,7 @@ function TipsPage({ shop, workers, tips, setTips, t, lang, fmt }) {
     if (!selected || !amt || amt<=0) return;
     setBusy(true);
     const { data, error } = await supabase.from("tips").insert({
-      shop_id: shop.id, worker_id: selected, amount: amt, from_sale: false, tip_date: todayISO(),
+      shop_id: shop.id, branch_id: branchId, worker_id: selected, amount: amt, from_sale: false, tip_date: todayISO(),
     }).select().single();
     if (!error && data) { setTips([data, ...tips]); setAmount(""); setSelected(null); }
     setBusy(false);
@@ -646,7 +685,7 @@ function TipsPage({ shop, workers, tips, setTips, t, lang, fmt }) {
 }
 
 /* ---------- الإعدادات: المحل + العمّال + الخدمات ---------- */
-function SettingsPage({ shop, setShop, workers, setWorkers, services, setServices, t, lang, reload }) {
+function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBranch, workers, setWorkers, services, setServices, t, lang, reload }) {
   const [newName, setNewName] = useState("");
   const [svcN, setSvcN] = useState("");
   const [svcPrice, setSvcPrice] = useState("");
@@ -656,6 +695,39 @@ function SettingsPage({ shop, setShop, workers, setWorkers, services, setService
   const [pinVal, setPinVal] = useState("");
   const [pinMsg, setPinMsg] = useState(false);
   const [lockedPages, setLockedPages] = useState(Array.isArray(shop?.locked_pages) ? shop.locked_pages : []);
+  const [newBranch, setNewBranch] = useState("");
+
+  // إضافة فرع جديد (مع 4 خدمات افتراضية)
+  const addBranch = async () => {
+    const n = newBranch.trim(); if (!n) return;
+    const { data: br, error } = await supabase.from("branches").insert({ shop_id: shop.id, name: n }).select().single();
+    if (!error && br) {
+      await supabase.from("services").insert([
+        { shop_id: shop.id, branch_id: br.id, name_kmr: "Skin Fade", name_ckb: "Skin Fade", price: 15, sort_order: 1 },
+        { shop_id: shop.id, branch_id: br.id, name_kmr: "Por (Normal)", name_ckb: "Qij (Asayi)", price: 12, sort_order: 2 },
+        { shop_id: shop.id, branch_id: br.id, name_kmr: "Ri", name_ckb: "Ris", price: 7, sort_order: 3 },
+        { shop_id: shop.id, branch_id: br.id, name_kmr: "Por + Ri", name_ckb: "Qij + Ris", price: 18, sort_order: 4 },
+      ]);
+      setBranches([...branches, br]);
+      setNewBranch("");
+    }
+  };
+  // إعادة تسمية الفرع
+  const renameBranch = async (id, name) => {
+    setBranches(branches.map(b=>b.id===id?{...b, name}:b));
+    await supabase.from("branches").update({ name }).eq("id", id);
+  };
+  // حذف فرع (مع كل بياناته) - ممنوع حذف آخر فرع
+  const delBranch = async (id) => {
+    if (branches.length <= 1) { window.alert(t.lastBranch); return; }
+    if (!window.confirm(t.confirmDelBranch)) return;
+    const { error } = await supabase.from("branches").delete().eq("id", id);
+    if (!error) {
+      const remaining = branches.filter(b=>b.id!==id);
+      setBranches(remaining);
+      if (branchId === id && remaining[0]) switchBranch(remaining[0].id);
+    }
+  };
 
   const toggleLock = async (page) => {
     const next = lockedPages.includes(page) ? lockedPages.filter(p=>p!==page) : [...lockedPages, page];
@@ -681,7 +753,7 @@ function SettingsPage({ shop, setShop, workers, setWorkers, services, setService
   };
   const addWorker = async () => {
     const n = newName.trim(); if (!n) return;
-    const { data, error } = await supabase.from("workers").insert({ shop_id: shop.id, name: n }).select().single();
+    const { data, error } = await supabase.from("workers").insert({ shop_id: shop.id, branch_id: branchId, name: n }).select().single();
     if (!error && data) { setWorkers([...workers, data]); setNewName(""); }
   };
   const delWorker = async (id) => {
@@ -693,7 +765,7 @@ function SettingsPage({ shop, setShop, workers, setWorkers, services, setService
     const n = svcN.trim(); const p = parseFloat(svcPrice);
     if (!n || !p || p<=0) return;
     const { data, error } = await supabase.from("services").insert({
-      shop_id: shop.id, name_kmr: n, name_ckb: n, price: p, sort_order: services.length+1,
+      shop_id: shop.id, branch_id: branchId, name_kmr: n, name_ckb: n, price: p, sort_order: services.length+1,
     }).select().single();
     if (!error && data) { setServices([...services, data]); setSvcN(""); setSvcPrice(""); }
   };
@@ -754,6 +826,26 @@ function SettingsPage({ shop, setShop, workers, setWorkers, services, setService
         )}
       </div>
 
+      <div style={sectionLbl}>{t.branches}</div>
+      <div style={{ ...formCard, marginBottom:20 }}>
+        <div style={{ display:"flex", gap:8 }}>
+          <input value={newBranch} onChange={(e)=>setNewBranch(e.target.value)} placeholder={t.branchName} style={{ ...inp, marginBottom:0 }} />
+          <button style={{ ...doneBtn, flex:"0 0 auto", width:"auto", padding:"0 18px" }} onClick={addBranch}>{t.add}</button>
+        </div>
+        {branches.length>0 && (
+          <div style={{ marginTop:12 }}>
+            {branches.map(b=>(
+              <div key={b.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, padding:"8px 0", borderBottom:`1px solid ${C.line}` }}>
+                <input value={b.name} onChange={(e)=>renameBranch(b.id, e.target.value)}
+                  style={{ ...inp, marginBottom:0, flex:1, fontWeight:700,
+                    border: b.id===branchId ? `2px solid ${C.brass}` : `1px solid ${C.line}` }} />
+                <button style={delBtn} onClick={()=>delBranch(b.id)} disabled={branches.length<=1}>{t.delete}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div style={sectionLbl}>{t.manageWorkers}</div>
       <div style={{ ...formCard, marginBottom:20 }}>
         <div style={{ display:"flex", gap:8 }}>
@@ -807,6 +899,7 @@ const logoMark = { width: 42, height: 42, borderRadius: 11, background: C.ink, c
 const langToggle = { display: "flex", gap: 4, background: "#efe9da", borderRadius: 10, padding: 4 };
 const langBtn = { border: "none", borderRadius: 7, padding: "7px 14px", fontWeight: 700, fontSize: 13, transition: "all .15s" };
 const signOutBtn = { border: `1px solid ${C.line}`, background: C.card, color: C.muted, borderRadius: 9, padding: "8px 14px", fontWeight: 700, fontSize: 13 };
+const branchSelect = { border: `1px solid ${C.line}`, background: C.card, color: C.ink, borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer" };
 const nav = { display: "flex", gap: 6, padding: "10px 14px", background: "#efe9da", margin: "12px 14px 0", borderRadius: 14 };
 const main = { padding: "18px 14px 40px", flex: 1, position: "relative" };
 const statCard = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: "20px 18px", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,.04)" };
