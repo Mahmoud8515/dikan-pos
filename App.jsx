@@ -217,7 +217,7 @@ function BranchSwitch({ branches, branchId, switchBranch, isRTLnow, locked }) {
 /* ---------- مفتاح بنمط iPhone ---------- */
 function Toggle({ on, onChange }) {
   return (
-    <button onClick={onChange} aria-pressed={on}
+    <button onClick={onChange} aria-pressed={on} dir="ltr"
       style={{
         width: 52, height: 31, borderRadius: 31, border: "none", padding: 2,
         background: on ? C.green : "#d4cdba", position: "relative",
