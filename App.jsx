@@ -389,7 +389,7 @@ function Main({ session, lang, switchLang }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={logoMark}>{"\u2702"}</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 20, color: C.ink }}>{shop?.name || t.appTitle}</div>
+            <div style={{ fontWeight: 800, fontSize: 20, color: C.ink }}>{branches.find(b=>b.id===branchId)?.name || shop?.name || t.appTitle}</div>
             <div style={{ fontSize: 12, color: C.muted }}>{t.appSub}</div>
           </div>
         </div>
