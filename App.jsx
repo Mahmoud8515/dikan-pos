@@ -36,7 +36,7 @@ const T = {
     workerSummary: "Performansa karkeran", cuts: "firotan", avg: "Navînî",
     topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû",
     tipsTotal: "Tevahiya baxşîşan", confirmDel: "Jê bibim?", export: "Derxe CSV",
-    optional: "(bijarte)", loading: "Tê barkirin…",
+    optional: "(bijarte)", loading: "Tê barkirin…", other: "Ya din", tipAmount: "Mîqdara baxşîşê",
     signIn: "Têkeve", signUp: "Hesab veke", signOut: "Derkeve",
     email: "E-mail", password: "Şîfre", shopName: "Navê dikanê", currency: "Dirav",
     haveAccount: "Hesabê te heye? Têkeve", noAccount: "Hesabê te tune? Veke",
@@ -68,7 +68,7 @@ const T = {
     workerSummary: "کارایی کارمەندان", cuts: "فرۆشتن", avg: "تێکڕا",
     topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو",
     tipsTotal: "کۆی بەخشیش", confirmDel: "بیسڕمەوە؟", export: "دەرهێنان CSV",
-    optional: "(ئیختیاری)", loading: "بار دەکرێ…",
+    optional: "(ئیختیاری)", loading: "بار دەکرێ…", other: "ئەوەی تر", tipAmount: "بڕی بەخشیش",
     signIn: "بچۆ ژوورەوە", signUp: "هەژمار بکەرەوە", signOut: "بچۆ دەرەوە",
     email: "ئیمەیڵ", password: "وشەی نهێنی", shopName: "ناوی دوکان", currency: "دراو",
     haveAccount: "هەژمارت هەیە؟ بچۆ ژوورەوە", noAccount: "هەژمارت نیە؟ بیکەرەوە",
@@ -100,7 +100,7 @@ const T = {
     workerSummary: "Barber performance", cuts: "sales", avg: "Avg",
     topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All",
     tipsTotal: "Total tips", confirmDel: "Delete?", export: "Export CSV",
-    optional: "(optional)", loading: "Loading…",
+    optional: "(optional)", loading: "Loading…", other: "Other", tipAmount: "Tip amount",
     signIn: "Sign in", signUp: "Create account", signOut: "Sign out",
     email: "E-mail", password: "Password", shopName: "Shop name", currency: "Currency",
     haveAccount: "Have an account? Sign in", noAccount: "No account? Create one",
@@ -125,8 +125,7 @@ const MONTHS = {
   en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
 };
 
-const TIP_PRESETS = [1, 2, 3, 5, 10];
-const TIP_PERCENTS = [10, 15, 20];
+const TIP_PRESETS = [1, 2, 3, 5, 6, 7, 8, 9, 10];
 
 const todayISO = () => {
   const d = new Date();
@@ -403,7 +402,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const [worker, setWorker] = useState(null);
   const [cart, setCart] = useState({});
   const [tip, setTip] = useState("");
-  const [pctTip, setPctTip] = useState(null);
+  const [otherOpen, setOtherOpen] = useState(false);
   const [flash, setFlash] = useState("");
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -415,13 +414,12 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
 
   const inc = (id) => setCart(c=>({ ...c, [id]:(c[id]||0)+1 }));
   const dec = (id) => setCart(c=>({ ...c, [id]:Math.max(0,(c[id]||0)-1) }));
-  useEffect(() => { if (pctTip) setTip(String(Math.round(subtotal*pctTip)/100)); }, [subtotal, pctTip]);
 
   const today = todayISO();
   const todaySales = sales.filter(s=>s.sold_at===today);
   const todayTotal = todaySales.reduce((sum,s)=>sum+Number(s.subtotal), 0);
 
-  const reset = () => { setCart({}); setWorker(null); setTip(""); setPctTip(null); setFlash(""); };
+  const reset = () => { setCart({}); setWorker(null); setTip(""); setPctTip(null); setOtherOpen(false); setFlash(""); };
 
   const checkout = async () => {
     if (!worker) { setFlash(t.noWorkerFirst); return; }
@@ -491,17 +489,19 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                 {TIP_PRESETS.map(amt=>{
-                  const on = !pctTip && parseFloat(tip)===amt;
-                  return <button key={amt} onClick={()=>{ setPctTip(null); setTip(on?"":String(amt)); }}
+                  const on = !otherOpen && parseFloat(tip)===amt;
+                  return <button key={amt} onClick={()=>{ setOtherOpen(false); setTip(on?"":String(amt)); }}
                     style={{ ...tipChip, borderColor:on?C.brass:C.line, background:on?C.ink:C.card, color:on?C.bg:C.ink }}>{amt}</button>;
                 })}
-                {TIP_PERCENTS.map(p=>{
-                  const on = pctTip===p;
-                  return <button key={p} onClick={()=>{ if(on){setPctTip(null);setTip("");}else{setPctTip(p);setTip(String(Math.round(subtotal*p)/100));} }}
-                    style={{ ...tipChip, borderColor:on?C.brass:C.line, background:on?C.ink:C.card, color:on?C.bg:C.ink }}>{p}%</button>;
-                })}
-                <button onClick={()=>{ setPctTip(null); setTip(""); }} style={{ ...tipChip, borderColor:C.line, background:C.card, color:C.muted }}>{t.clear}</button>
+                <button onClick={()=>{ setOtherOpen(true); setTip(""); }}
+                  style={{ ...tipChip, borderColor:otherOpen?C.brass:C.line, background:otherOpen?C.ink:C.card, color:otherOpen?C.bg:C.ink }}>{t.other}</button>
+                <button onClick={()=>{ setOtherOpen(false); setTip(""); }} style={{ ...tipChip, borderColor:C.line, background:C.card, color:C.muted }}>{t.clear}</button>
               </div>
+              {otherOpen && (
+                <input type="number" inputMode="decimal" autoFocus value={tip}
+                  onChange={(e)=>setTip(e.target.value)} placeholder={t.tipAmount}
+                  style={{ ...inp, marginTop:10, marginBottom:0 }} />
+              )}
             </div>
           )}
           <div style={checkoutBar}>
