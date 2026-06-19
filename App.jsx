@@ -46,7 +46,7 @@ const T = {
     pinUnlock: "Veke", pinSet: "Koda PIN saz bike", pinSetHint: "Ji bo parastina Hesab û Mîheng",
     pinChange: "Koda PIN biguherîne", pinRemove: "Koda PIN rake", pinNew: "Koda nû (4 reqem)",
     pinSaved: "Kod hat tomarkirin", pinLock: "Kilît bike", pinSecurity: "Parastin",
-    lockWhich: "Kîjan rûpel bên parastin", lockReports: "Hesab", lockTips: "Baxşîş", lockSettings: "Mîheng",
+    lockWhich: "Kîjan rûpel bên parastin", lockReports: "Hesab", lockTips: "Baxşîş", lockSettings: "Mîheng", lockBranches: "Guhertina şaxan",
     branches: "Şaxe", addBranch: "Şaxek nû", branchName: "Navê şaxê", confirmDelBranch: "Tu dixwazî vê şaxê û hemû daneyên wê jê bibî?", lastBranch: "Divê bi kêmî yek şax hebe",
   },
   ckb: {
@@ -78,7 +78,7 @@ const T = {
     pinUnlock: "کردنەوە", pinSet: "کۆدی PIN دابنێ", pinSetHint: "بۆ پاراستنی حیساب و ڕێکخستن",
     pinChange: "کۆدی PIN بگۆڕە", pinRemove: "کۆدی PIN لاببە", pinNew: "کۆدی نوێ (٤ ژمارە)",
     pinSaved: "کۆد تۆمار کرا", pinLock: "قوفڵ بکە", pinSecurity: "پاراستن",
-    lockWhich: "کام پەڕە بپارێزرێت", lockReports: "حیساب", lockTips: "بەخشیش", lockSettings: "ڕێکخستن",
+    lockWhich: "کام پەڕە بپارێزرێت", lockReports: "حیساب", lockTips: "بەخشیش", lockSettings: "ڕێکخستن", lockBranches: "گۆڕینی لق",
     branches: "لقەکان", addBranch: "لقی نوێ", branchName: "ناوی لق", confirmDelBranch: "دڵنیایت لە سڕینەوەی ئەم لقە و هەموو داتاکانی؟", lastBranch: "دەبێت لانیکەم یەک لق هەبێت",
   },
   en: {
@@ -110,7 +110,7 @@ const T = {
     pinUnlock: "Unlock", pinSet: "Set a PIN", pinSetHint: "To protect Reports & Settings",
     pinChange: "Change PIN", pinRemove: "Remove PIN", pinNew: "New PIN (4 digits)",
     pinSaved: "PIN saved", pinLock: "Lock", pinSecurity: "Security",
-    lockWhich: "Which pages to protect", lockReports: "Reports", lockTips: "Tips", lockSettings: "Settings",
+    lockWhich: "Which pages to protect", lockReports: "Reports", lockTips: "Tips", lockSettings: "Settings", lockBranches: "Switching branches",
     branches: "Branches", addBranch: "New branch", branchName: "Branch name", confirmDelBranch: "Delete this branch and all its data?", lastBranch: "You must have at least one branch",
   },
 };
@@ -177,18 +177,26 @@ function LangToggle({ lang, switchLang }) {
 }
 
 /* ---------- مبدّل الفرع (بتصميم متناسق) ---------- */
-function BranchSwitch({ branches, branchId, switchBranch, isRTLnow }) {
+function BranchSwitch({ branches, branchId, switchBranch, isRTLnow, locked }) {
   const [open, setOpen] = useState(false);
   const current = branches.find(b => b.id === branchId);
+  // لو مقفول: الضغط على الزر يطلب الـPIN؛ بعد الفتح يقدر يفتح القائمة ويختار
+  const onBtnClick = () => {
+    if (locked) {
+      switchBranch(branchId);  // يستدعي requestSwitchBranch -> يطلب PIN لأنه مقفول
+    } else {
+      setOpen(o => !o);
+    }
+  };
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} style={branchBtn}>
+      <button onClick={onBtnClick} style={branchBtn}>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 130 }}>
           {current ? current.name : ""}
         </span>
-        <span style={{ fontSize: 10, color: C.muted, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>{"\u25BC"}</span>
+        <span style={{ fontSize: 11 }}>{locked ? "\uD83D\uDD12" : <span style={{ fontSize: 10, color: C.muted, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s", display: "inline-block" }}>{"\u25BC"}</span>}</span>
       </button>
-      {open && (
+      {open && !locked && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={{ ...branchMenu, [isRTLnow ? "left" : "right"]: 0 }}>
@@ -330,7 +338,19 @@ function Main({ session, lang, switchLang }) {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // عند تبديل الفرع
+  // عند تبديل الفرع — لو محمي بالـPIN ولسا ما فُتح، اطلب الكود
+  const branchLocked = PROTECTED_branches() && shop?.pin && !unlocked;
+  function PROTECTED_branches() {
+    const arr = Array.isArray(shop?.locked_pages) ? shop.locked_pages : [];
+    return arr.includes("branches");
+  }
+  const requestSwitchBranch = (bid) => {
+    if (branchLocked) {
+      setPinPrompt("branches");
+    } else {
+      switchBranch(bid);
+    }
+  };
   const switchBranch = async (bid) => {
     setBranchId(bid);
     try { localStorage.setItem("branchId", bid); } catch (e) {}
@@ -350,7 +370,12 @@ function Main({ session, lang, switchLang }) {
       setTab(target);
     }
   };
-  const onUnlock = () => { setUnlocked(true); setTab(pinPrompt); setPinPrompt(null); };
+  const onUnlock = () => {
+    setUnlocked(true);
+    // لو كان قفل الفروع: بس نفتح القفل، والمستخدم يختار الفرع بنفسه بعدها
+    if (pinPrompt !== "branches") setTab(pinPrompt);
+    setPinPrompt(null);
+  };
   const lockNow = () => { setUnlocked(false); setTab("pos"); };
 
   if (loading) {
@@ -370,7 +395,7 @@ function Main({ session, lang, switchLang }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {branches.length > 1 && (
-            <BranchSwitch branches={branches} branchId={branchId} switchBranch={switchBranch} isRTLnow={isRTL(lang)} />
+            <BranchSwitch branches={branches} branchId={branchId} switchBranch={requestSwitchBranch} isRTLnow={isRTL(lang)} locked={branchLocked} />
           )}
           {shop?.pin && unlocked && <button onClick={lockNow} style={signOutBtn}>{t.pinLock}</button>}
           <LangToggle lang={lang} switchLang={switchLang} />
@@ -844,7 +869,7 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
         {shop?.pin && (
           <div style={{ marginTop:18, paddingTop:18, borderTop:`1px solid ${C.line}` }}>
             <div style={{ ...lbl, marginBottom:12 }}>{t.lockWhich}</div>
-            {[["sales", t.lockReports], ["tips", t.lockTips], ["services", t.lockSettings]].map(([page, label])=>(
+            {[["sales", t.lockReports], ["tips", t.lockTips], ["services", t.lockSettings], ["branches", t.lockBranches]].map(([page, label])=>(
               <div key={page} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0" }}>
                 <span style={{ color:C.ink, fontWeight:600, fontSize:15 }}>{label}</span>
                 <Toggle on={lockedPages.includes(page)} onChange={()=>toggleLock(page)} />
