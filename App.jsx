@@ -25,6 +25,8 @@ const T = {
     total: "Giştî", subtotal: "Bin-giştî", tipLabel: "Baxşîş", clear: "Paqij",
     checkout: "Tomar bike",
     noWorkerFirst: "Pêşî karkerekî hilbijêre", noServiceFirst: "Bi kêmanî xizmetekê hilbijêre",
+    saveError: "Tomar nebû. Înternetê kontrol bike û dîsa biceribîne.",
+    group: "Kom", groupBill: "Hesabê komê", addPerson: "Kesek zêde bike", addAnother: "Zêde bike", next: "Pêş", edit: "Biguherîne", splitNote: "tê parvekirin",
     saved: "Hat tomarkirin ✓",
     done: "Temam", cancel: "Betal", delete: "Jê bibe",
     salesLog: "Firotan", noSales: "Hîn tu firotan tune.",
@@ -34,7 +36,8 @@ const T = {
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     workerSummary: "Performansa karkeran", cuts: "firotan", avg: "Navînî",
-    topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû",
+    topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû", periodCustom: "Taybet",
+    dateRange: "Navbera dîrokê", from: "Ji", to: "Heta", thisWeek: "Vê hefteyê", lastWeek: "Hefteya borî", lastMonth: "Meha borî", apply: "Bicîbîne",
     tipsTotal: "Tevahiya baxşîşan", confirmDel: "Jê bibim?", export: "Derxe CSV",
     optional: "(bijarte)", loading: "Tê barkirin…", other: "Ya din", tipAmount: "Mîqdara baxşîşê",
     signIn: "Têkeve", signUp: "Hesab veke", signOut: "Derkeve",
@@ -57,6 +60,8 @@ const T = {
     total: "گشتی", subtotal: "ژێر-گشتی", tipLabel: "بەخشیش", clear: "پاک",
     checkout: "تۆمار بکە",
     noWorkerFirst: "یەکەم کارمەندێک هەڵبژێرە", noServiceFirst: "بەلایەنی کەم خزمەتێک هەڵبژێرە",
+    saveError: "تۆمار نەکرا. ئینتەرنێت بپشکنە و دووبارە هەوڵ بدە.",
+    group: "گرووپ", groupBill: "حیسابی گرووپ", addPerson: "کەسێک زیاد بکە", addAnother: "زیاد بکە", next: "دواتر", edit: "دەستکاری", splitNote: "دابەش دەکرێت",
     saved: "تۆمار کرا ✓",
     done: "تەمام", cancel: "پاشگەزبوونەوە", delete: "سڕینەوە",
     salesLog: "فرۆشتن", noSales: "هێشتا هیچ فرۆشتنێک نیە.",
@@ -66,7 +71,8 @@ const T = {
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     workerSummary: "کارایی کارمەندان", cuts: "فرۆشتن", avg: "تێکڕا",
-    topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو",
+    topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو", periodCustom: "دڵخواز",
+    dateRange: "ماوەی بەروار", from: "لە", to: "بۆ", thisWeek: "ئەم هەفتەیە", lastWeek: "هەفتەی ڕابردوو", lastMonth: "مانگی ڕابردوو", apply: "جێبەجێ بکە",
     tipsTotal: "کۆی بەخشیش", confirmDel: "بیسڕمەوە؟", export: "دەرهێنان CSV",
     optional: "(ئیختیاری)", loading: "بار دەکرێ…", other: "ئەوەی تر", tipAmount: "بڕی بەخشیش",
     signIn: "بچۆ ژوورەوە", signUp: "هەژمار بکەرەوە", signOut: "بچۆ دەرەوە",
@@ -89,6 +95,8 @@ const T = {
     total: "Total", subtotal: "Subtotal", tipLabel: "Tip", clear: "Clear",
     checkout: "Save",
     noWorkerFirst: "Select a barber first", noServiceFirst: "Select at least one service",
+    saveError: "Not saved. Check your internet and try again.",
+    group: "Group", groupBill: "Group bill", addPerson: "Add a person", addAnother: "Add", next: "Next", edit: "Edit", splitNote: "split evenly",
     saved: "Saved ✓",
     done: "Done", cancel: "Cancel", delete: "Delete",
     salesLog: "Sales", noSales: "No sales yet.",
@@ -98,7 +106,8 @@ const T = {
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     workerSummary: "Barber performance", cuts: "sales", avg: "Avg",
-    topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All",
+    topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All", periodCustom: "Custom",
+    dateRange: "Date range", from: "From", to: "To", thisWeek: "This week", lastWeek: "Last week", lastMonth: "Last month", apply: "Apply",
     tipsTotal: "Total tips", confirmDel: "Delete?", export: "Export CSV",
     optional: "(optional)", loading: "Loading…", other: "Other", tipAmount: "Tip amount",
     signIn: "Sign in", signUp: "Create account", signOut: "Sign out",
@@ -137,6 +146,13 @@ const monthLabel = (key, lang) => {
   return `${MONTHS[lang][parseInt(m,10)-1]} ${y}`;
 };
 const svcName = (s, lang) => (lang === "ckb" ? s.name_ckb : s.name_kmr);
+// الوقت (الساعة:الدقيقة) من طابع الوقت الكامل created_at
+const timeLabel = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+};
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -410,7 +426,7 @@ function Main({ session, lang, switchLang }) {
       </nav>
       <main style={main}>
         {tab==="pos" && <POSPage {...{shop,branchId,workers,services,sales,setSales,tips,setTips,t,lang,fmt}} />}
-        {tab==="sales" && <SalesPage {...{sales,setSales,workers,t,lang,fmt}} />}
+        {tab==="sales" && <SalesPage {...{sales,setSales,workers,tips,t,lang,fmt}} />}
         {tab==="tips" && <TipsPage {...{shop,branchId,workers,tips,setTips,t,lang,fmt}} />}
         {tab==="services" && <SettingsPage {...{shop,setShop,branchId,branches,setBranches,switchBranch,workers,setWorkers,services,setServices,t,lang,reload:loadAll}} />}
       </main>
@@ -459,11 +475,22 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const [flash, setFlash] = useState("");
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [group, setGroup] = useState([]);          // [{ worker, cart }] لكل شخص بالمجموعة
+  const [groupOpen, setGroupOpen] = useState(false); // هل النافذة مفتوحة
+  const [editIdx, setEditIdx] = useState(null);      // فهرس الشخص الجاري تعديله (أو null)
 
   const cartList = Object.entries(cart).filter(([,q])=>q>0).map(([id,q])=>({ s: services.find(x=>x.id===id), q })).filter(x=>x.s);
   const subtotal = cartList.reduce((sum,{s,q})=>sum+Number(s.price)*q, 0);
   const tipNum = parseFloat(tip) || 0;
-  const total = subtotal + tipNum;
+
+  // حساب مجموع سلة أي شخص بالمجموعة
+  const cartSubtotal = (c) => Object.entries(c).filter(([,q])=>q>0)
+    .reduce((sum,[id,q])=>{ const s=services.find(x=>x.id===id); return s?sum+Number(s.price)*q:sum; }, 0);
+  const inGroup = group.length > 0;
+  const groupSubtotal = group.reduce((sum,p)=>sum+cartSubtotal(p.cart), 0);
+  // المجموع الكلي: لو مجموعة، نجمع كل الأشخاص؛ غير هيك الشخص العادي
+  const billSubtotal = inGroup ? groupSubtotal : subtotal;
+  const total = billSubtotal + tipNum;
 
   const inc = (id) => setCart(c=>({ ...c, [id]:(c[id]||0)+1 }));
   const dec = (id) => setCart(c=>({ ...c, [id]:Math.max(0,(c[id]||0)-1) }));
@@ -472,17 +499,52 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const todaySales = sales.filter(s=>s.sold_at===today);
   const todayTotal = todaySales.reduce((sum,s)=>sum+Number(s.subtotal), 0);
 
-  const reset = () => { setCart({}); setWorker(null); setTip(""); setPctTip(null); setOtherOpen(false); setFlash(""); };
+  const reset = () => { setCart({}); setWorker(null); setTip(""); setOtherOpen(false); setFlash(""); setGroup([]); };
 
   const checkout = async () => {
+    // وضع المجموعة
+    if (inGroup) {
+      setBusy(true);
+      try {
+        const n = group.length;
+        const tipEach = n > 0 ? Math.round((tipNum / n) * 100) / 100 : 0;
+        const newSales = [], newTips = [];
+        for (const p of group) {
+          const list = Object.entries(p.cart).filter(([,q])=>q>0)
+            .map(([id,q])=>{ const s=services.find(x=>x.id===id); return { serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }; });
+          const sub = list.reduce((sum,it)=>sum+it.price*it.qty, 0);
+          const { data: sale, error } = await supabase.from("sales").insert({
+            shop_id: shop.id, branch_id: branchId, worker_id: p.worker, items: list, subtotal: sub, tip: tipEach, sold_at: today,
+          }).select().single();
+          if (error || !sale) { setFlash(t.saveError); setBusy(false); return; }
+          newSales.push(sale);
+          if (tipEach > 0) {
+            const { data: tipRow } = await supabase.from("tips").insert({
+              shop_id: shop.id, branch_id: branchId, worker_id: p.worker, amount: tipEach, from_sale: true, tip_date: today,
+            }).select().single();
+            if (tipRow) newTips.push(tipRow);
+          }
+        }
+        setSales([...newSales, ...sales]);
+        if (newTips.length) setTips([...newTips, ...tips]);
+        reset(); setOk(true); setTimeout(()=>setOk(false), 1600);
+      } catch (e) {
+        setFlash(t.saveError);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    // الوضع العادي (شخص واحد)
     if (!worker) { setFlash(t.noWorkerFirst); return; }
     if (cartList.length === 0) { setFlash(t.noServiceFirst); return; }
     setBusy(true);
-    const items = cartList.map(({s,q})=>({ serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }));
-    const { data: sale, error } = await supabase.from("sales").insert({
-      shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
-    }).select().single();
-    if (!error && sale) {
+    try {
+      const items = cartList.map(({s,q})=>({ serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }));
+      const { data: sale, error } = await supabase.from("sales").insert({
+        shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
+      }).select().single();
+      if (error || !sale) { setFlash(t.saveError); return; }
       setSales([sale, ...sales]);
       if (tipNum > 0) {
         const { data: tipRow } = await supabase.from("tips").insert({
@@ -491,9 +553,35 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
         if (tipRow) setTips([tipRow, ...tips]);
       }
       reset(); setOk(true); setTimeout(()=>setOk(false), 1600);
+    } catch (e) {
+      setFlash(t.saveError);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   };
+
+  // فتح النافذة لإضافة شخص جديد
+  const openAddPerson = () => { setEditIdx(null); setGroupOpen(true); };
+  // فتح النافذة لتعديل شخص موجود
+  const openEditPerson = (idx) => { setEditIdx(idx); setGroupOpen(true); };
+  // "إضافة آخر": احفظ الشخص وأبقِ النافذة مفتوحة فاضية للتالي
+  const addPersonKeepOpen = (person) => {
+    setGroup(g => [...g, person]);
+    setGroupOpen(false);
+    // أعد فتحها فاضية باللحظة التالية (إعادة تهيئة الحقول)
+    setTimeout(()=>{ setEditIdx(null); setGroupOpen(true); }, 0);
+  };
+  // "التالي/تم": احفظ الشخص (إضافة أو تعديل) وارجع
+  const donePerson = (person) => {
+    if (editIdx !== null) {
+      setGroup(g => g.map((p,i)=>i===editIdx?person:p));
+    } else {
+      setGroup(g => [...g, person]);
+    }
+    setGroupOpen(false); setEditIdx(null);
+  };
+  // حذف شخص من المجموعة
+  const removePerson = (idx) => setGroup(g => g.filter((_,i)=>i!==idx));
 
   return (
     <div>
@@ -508,7 +596,41 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               <button key={w.id} onClick={()=>{ setWorker(w.id); setFlash(""); }}
                 style={{ ...chip, borderColor: worker===w.id?C.brass:C.line, background: worker===w.id?C.ink:C.card, color: worker===w.id?C.bg:C.ink }}>{w.name}</button>
             ))}
+            {workers.length>1 && (
+              <button onClick={openAddPerson}
+                style={{ ...chip, borderColor:C.brass, background:C.card, color:C.brassDark, fontWeight:800 }}>
+                {"\uD83D\uDC65 "}{t.group}
+              </button>
+            )}
           </div>
+          {inGroup && (
+            <div style={{ marginBottom:18 }}>
+              <div style={sectionLbl}>{t.groupBill}</div>
+              {group.map((p,idx)=>{
+                const wn = workers.find(w=>w.id===p.worker)?.name || "—";
+                const list = Object.entries(p.cart).filter(([,q])=>q>0).map(([id,q])=>({ s:services.find(x=>x.id===id), q })).filter(x=>x.s);
+                return (
+                  <div key={idx} style={{ ...formCard, marginBottom:10, padding:"12px 14px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                      <span style={{ fontWeight:800, color:C.ink, fontSize:16 }}>{wn}</span>
+                      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                        <span style={{ fontWeight:800, color:C.brassDark }}>{fmt(cartSubtotal(p.cart))}</span>
+                        <button onClick={()=>openEditPerson(idx)} style={miniBtn}>{t.edit}</button>
+                        <button onClick={()=>removePerson(idx)} style={{ ...miniBtn, color:C.red }}>{t.delete}</button>
+                      </div>
+                    </div>
+                    <div style={{ fontSize:13, color:C.muted }}>
+                      {list.map(({s,q})=>`${svcName(s,lang)}${q>1?` ×${q}`:""}`).join("  •  ")}
+                    </div>
+                  </div>
+                );
+              })}
+              <button onClick={openAddPerson} style={{ ...chip, borderColor:C.brass, background:C.card, color:C.brassDark, fontWeight:800, width:"100%", marginTop:4 }}>
+                {"+ "}{t.addPerson}
+              </button>
+            </div>
+          )}
+          {!inGroup && (<>
           <div style={sectionLbl}>{t.pickServices}</div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))", gap:10, marginBottom:18 }}>
             {services.map(s=>{
@@ -530,14 +652,15 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               );
             })}
           </div>
-          {subtotal>0 && (
+          </>)}
+          {billSubtotal>0 && (
             <div style={{ ...formCard, marginBottom:14, animation:"slideUp .2s" }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
                 <span style={{ color:C.muted }}>{t.subtotal}</span>
-                <span style={{ fontWeight:700, color:C.ink }}>{fmt(subtotal)}</span>
+                <span style={{ fontWeight:700, color:C.ink }}>{fmt(billSubtotal)}</span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <span style={{ color:C.muted }}>{t.tipLabel} <span style={{ fontSize:11 }}>{t.optional}</span></span>
+                <span style={{ color:C.muted }}>{t.tipLabel} <span style={{ fontSize:11 }}>{t.optional}</span>{inGroup && tipNum>0 && <span style={{ fontSize:11, color:C.brassDark }}> · {t.splitNote}</span>}</span>
                 {tipNum>0 && <span style={{ fontWeight:800, color:C.brassDark }}>+{fmt(tipNum)}</span>}
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
@@ -563,7 +686,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               <div style={{ fontSize:30, fontWeight:900, color:C.ink }}>{fmt(total)}</div>
             </div>
             <div style={{ display:"flex", gap:8 }}>
-              {(subtotal>0||worker) && <button style={clearBtn} onClick={reset}>{t.clear}</button>}
+              {(billSubtotal>0||worker||inGroup) && <button style={clearBtn} onClick={reset}>{t.clear}</button>}
               <button style={{ ...checkoutBtn, opacity:busy?.6:1 }} onClick={checkout} disabled={busy}>{t.checkout}</button>
             </div>
           </div>
@@ -571,6 +694,86 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
         </>
       )}
       {ok && <div style={toast}>{t.saved}</div>}
+      {groupOpen && (
+        <GroupModal
+          workers={workers} services={services} t={t} lang={lang} fmt={fmt}
+          showNext={editIdx===null && group.length >= 1}
+          initial={editIdx!==null ? group[editIdx] : null}
+          onAdd={addPersonKeepOpen}
+          onDone={donePerson}
+          onCancel={()=>{ setGroupOpen(false); setEditIdx(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- نافذة المجموعة (اختيار حلاق + خدماته) ---------- */
+function GroupModal({ workers, services, t, lang, fmt, showNext, initial, onAdd, onDone, onCancel }) {
+  const [w, setW] = useState(initial?.worker || null);
+  const [c, setC] = useState(initial?.cart || {});
+  const list = Object.entries(c).filter(([,q])=>q>0).map(([id,q])=>({ s:services.find(x=>x.id===id), q })).filter(x=>x.s);
+  const sub = list.reduce((sum,{s,q})=>sum+Number(s.price)*q, 0);
+  const inc = (id) => setC(x=>({ ...x, [id]:(x[id]||0)+1 }));
+  const dec = (id) => setC(x=>({ ...x, [id]:Math.max(0,(x[id]||0)-1) }));
+  const valid = w && list.length>0;
+  const person = { worker: w, cart: c };
+
+  return (
+    <div style={groupOverlay} onClick={onCancel}>
+      <div style={groupBox} onClick={(e)=>e.stopPropagation()}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <span style={{ fontWeight:900, fontSize:18, color:C.ink }}>{t.group}</span>
+          <button onClick={onCancel} style={{ border:"none", background:"none", fontSize:22, color:C.muted, cursor:"pointer" }}>×</button>
+        </div>
+        <div style={sectionLbl}>{t.pickWorker}</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
+          {workers.map(x=>(
+            <button key={x.id} onClick={()=>setW(x.id)}
+              style={{ ...chip, borderColor: w===x.id?C.brass:C.line, background: w===x.id?C.ink:C.card, color: w===x.id?C.bg:C.ink }}>{x.name}</button>
+          ))}
+        </div>
+        <div style={sectionLbl}>{t.pickServices}</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))", gap:8, marginBottom:16 }}>
+          {services.map(s=>{
+            const q = c[s.id]||0;
+            return (
+              <div key={s.id} style={{ ...svcCard, borderColor: q>0?C.brass:C.line, background: q>0?"#fdf8ec":C.card }}>
+                <button onClick={()=>inc(s.id)} style={svcTap}>
+                  <div style={{ fontWeight:800, fontSize:15, color:C.ink }}>{svcName(s,lang)}</div>
+                  <div style={{ fontSize:13, color:C.brassDark, fontWeight:700, marginTop:3 }}>{fmt(Number(s.price))}</div>
+                </button>
+                {q>0 && (
+                  <div style={qtyRow}>
+                    <button style={qtyBtn} onClick={()=>dec(s.id)}>−</button>
+                    <span style={{ fontWeight:800, color:C.ink, minWidth:20, textAlign:"center" }}>{q}</span>
+                    <button style={qtyBtn} onClick={()=>inc(s.id)}>+</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8, gap:8, flexWrap:"wrap" }}>
+          <span style={{ fontWeight:800, color:C.ink, fontSize:17 }}>{fmt(sub)}</span>
+          <div style={{ display:"flex", gap:8 }}>
+            {initial ? (
+              // وضع التعديل: زر حفظ واحد
+              <button onClick={()=>onDone(person)} disabled={!valid}
+                style={{ ...checkoutBtn, background: valid?C.green:C.line, padding:"12px 20px", fontSize:15 }}>{t.done}</button>
+            ) : (
+              <>
+                <button onClick={()=>onAdd(person)} disabled={!valid}
+                  style={{ ...checkoutBtn, background: valid?C.ink:C.line, padding:"12px 18px", fontSize:15 }}>{t.addAnother}</button>
+                {showNext && (
+                  <button onClick={()=>onDone(person)} disabled={!valid}
+                    style={{ ...checkoutBtn, background: valid?C.green:C.line, padding:"12px 20px", fontSize:15 }}>{t.next}</button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -586,19 +789,34 @@ function Stat({ label, value, color, sub }) {
 }
 
 /* ---------- التقارير ---------- */
-function SalesPage({ sales, setSales, workers, t, lang, fmt }) {
+function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
   const [period, setPeriod] = useState("month");
+  const [customFrom, setCustomFrom] = useState(null);  // "YYYY-MM-DD"
+  const [customTo, setCustomTo] = useState(null);
+  const [calOpen, setCalOpen] = useState(false);
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
+
+  const inCustom = (d) => customFrom && customTo && d >= customFrom && d <= customTo;
 
   const filtered = useMemo(()=>{
     if (period==="today") return sales.filter(s=>s.sold_at===today);
     if (period==="month") return sales.filter(s=>monthKey(s.sold_at)===monthKey(today));
+    if (period==="custom") return sales.filter(s=>inCustom(s.sold_at));
     return sales;
-  }, [sales, period, today]);
+  }, [sales, period, today, customFrom, customTo]);
+
+  // البخشيش يُحسب من جدول tips الكامل (يشمل بخشيش المبيعات + المُضاف يدوياً)
+  const filteredTips = useMemo(()=>{
+    const list = tips || [];
+    if (period==="today") return list.filter(x=>x.tip_date===today);
+    if (period==="month") return list.filter(x=>monthKey(x.tip_date)===monthKey(today));
+    if (period==="custom") return list.filter(x=>inCustom(x.tip_date));
+    return list;
+  }, [tips, period, today, customFrom, customTo]);
 
   const totalRev = filtered.reduce((sum,s)=>sum+Number(s.subtotal),0);
-  const totalTips = filtered.reduce((sum,s)=>sum+Number(s.tip||0),0);
+  const totalTips = filteredTips.reduce((sum,x)=>sum+Number(x.amount||0),0);
   const count = filtered.length;
   const avg = count?totalRev/count:0;
 
@@ -618,8 +836,8 @@ function SalesPage({ sales, setSales, workers, t, lang, fmt }) {
   };
 
   const exportCSV = () => {
-    const rows = [["date","worker","services","subtotal","tip"]];
-    filtered.forEach(s=>rows.push([s.sold_at, wName(s.worker_id), (s.items||[]).map(i=>`${i.name} x${i.qty}`).join(" | "), s.subtotal, s.tip||0]));
+    const rows = [["date","time","worker","services","subtotal","tip"]];
+    filtered.forEach(s=>rows.push([s.sold_at, timeLabel(s.created_at), wName(s.worker_id), (s.items||[]).map(i=>`${i.name} x${i.qty}`).join(" | "), s.subtotal, s.tip||0]));
     const csv = rows.map(r=>r.map(c=>`"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type:"text/csv" });
     const url = URL.createObjectURL(blob);
@@ -633,7 +851,13 @@ function SalesPage({ sales, setSales, workers, t, lang, fmt }) {
         {[["today",t.periodToday],["month",t.periodMonth],["all",t.periodAll]].map(([k,l])=>(
           <button key={k} onClick={()=>setPeriod(k)} style={{ ...periodBtn, background:period===k?C.ink:"transparent", color:period===k?C.bg:C.muted }}>{l}</button>
         ))}
+        <button onClick={()=>setCalOpen(true)} style={{ ...periodBtn, background:period==="custom"?C.ink:"transparent", color:period==="custom"?C.bg:C.muted }}>{t.periodCustom}</button>
       </div>
+      {period==="custom" && customFrom && customTo && (
+        <div style={{ textAlign:"center", marginBottom:12, color:C.muted, fontSize:13, fontWeight:700 }}>
+          {customFrom} → {customTo}
+        </div>
+      )}
       <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap" }}>
         <Stat label={t.monthTotal} value={fmt(totalRev)} color={C.green} sub={`${count} ${t.cuts}`} />
         <Stat label={t.tipsTotal} value={fmt(totalTips)} color={C.brassDark} />
@@ -678,10 +902,126 @@ function SalesPage({ sales, setSales, workers, t, lang, fmt }) {
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:C.muted }}>
             <span>{(s.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}</span>
-            <span>{s.sold_at}</span>
+            <span>{s.sold_at}{timeLabel(s.created_at) ? ` · ${timeLabel(s.created_at)}` : ""}</span>
           </div>
         </div>
       ))}
+      {calOpen && (
+        <DateRangeModal
+          t={t} lang={lang} initialFrom={customFrom} initialTo={customTo}
+          onApply={(from,to)=>{ setCustomFrom(from); setCustomTo(to); setPeriod("custom"); setCalOpen(false); }}
+          onCancel={()=>setCalOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- تقويم اختيار نطاق التواريخ ---------- */
+function DateRangeModal({ t, lang, initialFrom, initialTo, onApply, onCancel }) {
+  const base = initialFrom ? new Date(initialFrom+"T00:00:00") : new Date();
+  const [viewY, setViewY] = useState(base.getFullYear());
+  const [viewM, setViewM] = useState(base.getMonth());   // 0-11
+  const [from, setFrom] = useState(initialFrom || null);
+  const [to, setTo] = useState(initialTo || null);
+  const isRTLnow = isRTL(lang);
+
+  const iso = (y,m,d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  const daysInMonth = new Date(viewY, viewM+1, 0).getDate();
+  // أول يوم بالشهر (نخليه يبدأ من الاثنين)
+  let firstDow = new Date(viewY, viewM, 1).getDay();   // 0=أحد
+  firstDow = (firstDow + 6) % 7;                        // 0=اثنين
+
+  const pick = (d) => {
+    const val = iso(viewY, viewM, d);
+    if (!from || (from && to)) { setFrom(val); setTo(null); }   // بداية اختيار جديد
+    else if (val < from) { setTo(from); setFrom(val); }          // اختار قبل البداية
+    else { setTo(val); }                                          // اختار النهاية
+  };
+  const inRange = (d) => { const v=iso(viewY,viewM,d); return from && to && v>=from && v<=to; };
+  const isEnd = (d) => { const v=iso(viewY,viewM,d); return v===from || v===to; };
+
+  const prevMonth = () => { if (viewM===0){ setViewM(11); setViewY(viewY-1); } else setViewM(viewM-1); };
+  const nextMonth = () => { if (viewM===11){ setViewM(0); setViewY(viewY+1); } else setViewM(viewM+1); };
+
+  // أزرار سريعة
+  const quick = (kind) => {
+    const now = new Date();
+    const y=now.getFullYear(), m=now.getMonth(), d=now.getDate();
+    if (kind==="thisWeek") {
+      const dow=(now.getDay()+6)%7; const mon=new Date(y,m,d-dow); const sun=new Date(y,m,d-dow+6);
+      setFrom(iso(mon.getFullYear(),mon.getMonth(),mon.getDate())); setTo(iso(sun.getFullYear(),sun.getMonth(),sun.getDate()));
+    } else if (kind==="lastWeek") {
+      const dow=(now.getDay()+6)%7; const mon=new Date(y,m,d-dow-7); const sun=new Date(y,m,d-dow-1);
+      setFrom(iso(mon.getFullYear(),mon.getMonth(),mon.getDate())); setTo(iso(sun.getFullYear(),sun.getMonth(),sun.getDate()));
+    } else if (kind==="thisMonth") {
+      setFrom(iso(y,m,1)); setTo(iso(y,m,new Date(y,m+1,0).getDate()));
+    } else if (kind==="lastMonth") {
+      const lm=m===0?11:m-1; const ly=m===0?y-1:y;
+      setFrom(iso(ly,lm,1)); setTo(iso(ly,lm,new Date(ly,lm+1,0).getDate()));
+    }
+  };
+
+  const DOW = lang==="en" ? ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+            : lang==="ckb" ? ["دوو","سێ","چوار","پێن","هەی","شەم","یەک"]
+            : ["Du","Sê","Çar","Pên","În","Şem","Yek"];
+
+  return (
+    <div style={groupOverlay} onClick={onCancel}>
+      <div style={{ ...groupBox, maxWidth:420 }} onClick={(e)=>e.stopPropagation()} dir={isRTLnow?"rtl":"ltr"}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <span style={{ fontWeight:900, fontSize:18, color:C.ink }}>{t.dateRange}</span>
+          <button onClick={onCancel} style={{ border:"none", background:"none", fontSize:22, color:C.muted, cursor:"pointer" }}>×</button>
+        </div>
+
+        {/* عرض النطاق المختار */}
+        <div style={{ display:"flex", gap:10, marginBottom:14 }}>
+          <div style={{ flex:1, ...inp, marginBottom:0, textAlign:"center", color: from?C.ink:C.muted }}>{from || t.from}</div>
+          <div style={{ flex:1, ...inp, marginBottom:0, textAlign:"center", color: to?C.ink:C.muted }}>{to || t.to}</div>
+        </div>
+
+        {/* أزرار سريعة */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
+          <button onClick={()=>quick("thisWeek")} style={quickChip}>{t.thisWeek}</button>
+          <button onClick={()=>quick("lastWeek")} style={quickChip}>{t.lastWeek}</button>
+          <button onClick={()=>quick("thisMonth")} style={quickChip}>{t.thisMonth}</button>
+          <button onClick={()=>quick("lastMonth")} style={quickChip}>{t.lastMonth}</button>
+        </div>
+
+        {/* رأس الشهر + تنقّل */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <span style={{ fontWeight:800, color:C.ink, fontSize:16 }}>{MONTHS[lang][viewM]} {viewY}</span>
+          <div style={{ display:"flex", gap:6 }}>
+            <button onClick={isRTLnow?nextMonth:prevMonth} style={calNav}>{isRTLnow?"›":"‹"}</button>
+            <button onClick={isRTLnow?prevMonth:nextMonth} style={calNav}>{isRTLnow?"‹":"›"}</button>
+          </div>
+        </div>
+
+        {/* أيام الأسبوع */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:4 }}>
+          {DOW.map((d,i)=><div key={i} style={{ textAlign:"center", fontSize:11, fontWeight:700, color:C.muted }}>{d}</div>)}
+        </div>
+        {/* شبكة الأيام */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
+          {Array.from({length:firstDow}).map((_,i)=><div key={"e"+i} />)}
+          {Array.from({length:daysInMonth}).map((_,i)=>{
+            const d=i+1; const end=isEnd(d); const mid=inRange(d)&&!end;
+            return (
+              <button key={d} onClick={()=>pick(d)}
+                style={{ aspectRatio:"1", border:"none", borderRadius:9, cursor:"pointer", fontWeight:700, fontSize:15,
+                  background: end?C.ink : mid?"#efe7d4" : "transparent",
+                  color: end?C.bg : C.ink }}>{d}</button>
+            );
+          })}
+        </div>
+
+        {/* أزرار الإجراء */}
+        <div style={{ display:"flex", gap:10, marginTop:18 }}>
+          <button onClick={()=>{ setFrom(null); setTo(null); }} style={{ ...clearBtn, flex:1 }}>{t.clear}</button>
+          <button onClick={()=>{ if(from){ onApply(from, to||from); } }} disabled={!from}
+            style={{ ...checkoutBtn, flex:1, background: from?C.green:C.line, padding:"14px 0" }}>{t.apply}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -699,11 +1039,17 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
     const amt = parseFloat(amount);
     if (!selected || !amt || amt<=0) return;
     setBusy(true);
-    const { data, error } = await supabase.from("tips").insert({
-      shop_id: shop.id, branch_id: branchId, worker_id: selected, amount: amt, from_sale: false, tip_date: todayISO(),
-    }).select().single();
-    if (!error && data) { setTips([data, ...tips]); setAmount(""); setSelected(null); }
-    setBusy(false);
+    try {
+      const { data, error } = await supabase.from("tips").insert({
+        shop_id: shop.id, branch_id: branchId, worker_id: selected, amount: amt, from_sale: false, tip_date: todayISO(),
+      }).select().single();
+      if (error || !data) { window.alert(t.saveError); return; }
+      setTips([data, ...tips]); setAmount(""); setSelected(null);
+    } catch (e) {
+      window.alert(t.saveError);
+    } finally {
+      setBusy(false);
+    }
   };
   const worker = workers.find(w=>w.id===selected);
 
@@ -967,6 +1313,11 @@ const qtyBtn = { width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.
 const checkoutBar = { display: "flex", justifyContent: "space-between", alignItems: "center", background: C.card, border: `2px solid ${C.brass}`, borderRadius: 16, padding: "14px 18px" };
 const checkoutBtn = { padding: "14px 28px", border: "none", background: C.green, color: "#fff", borderRadius: 12, fontWeight: 800, fontSize: 17 };
 const clearBtn = { padding: "14px 18px", border: `1px solid ${C.line}`, background: "transparent", color: C.muted, borderRadius: 12, fontWeight: 700, fontSize: 14 };
+const groupOverlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "5vh 16px", zIndex: 60, overflowY: "auto" };
+const groupBox = { background: C.bg, borderRadius: 18, padding: 20, width: "100%", maxWidth: 560, boxShadow: "0 12px 40px rgba(0,0,0,.3)" };
+const miniBtn = { border: `1px solid ${C.line}`, background: C.card, color: C.muted, borderRadius: 8, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const quickChip = { border: `1px solid ${C.brass}`, background: C.card, color: C.brassDark, borderRadius: 20, padding: "7px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const calNav = { border: `1px solid ${C.line}`, background: C.card, color: C.ink, borderRadius: 8, width: 34, height: 34, fontWeight: 800, fontSize: 18, cursor: "pointer", lineHeight: 1 };
 const tipChip = { minWidth: 52, padding: "11px 16px", border: "2px solid", borderRadius: 11, fontWeight: 800, fontSize: 15, transition: "all .12s" };
 const formCard = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 16 };
 const lbl = { display: "block", fontSize: 13, color: C.muted, marginBottom: 6, fontWeight: 600 };
