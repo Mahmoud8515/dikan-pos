@@ -891,7 +891,8 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
             const active = salesView===p.id;
             return (
               <button key={i} onClick={()=>setSalesView(active?null:p.id)}
-                style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer",
+                style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box",
+                  fontFamily:"inherit", fontSize:15,
                   borderColor: active?C.brass:C.line, background: active?"#fdf8ec":C.card }}>
                 <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
                 <span style={{ color:C.muted, fontSize:13 }}>{p.count} {t.cuts}</span>
