@@ -499,8 +499,6 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const dec = (id) => setCart(c=>({ ...c, [id]:Math.max(0,(c[id]||0)-1) }));
 
   const today = todayISO();
-  const todaySales = sales.filter(s=>s.sold_at===today);
-  const todayTotal = todaySales.reduce((sum,s)=>sum+Number(s.subtotal), 0);
 
   const reset = () => { setCart({}); setWorker(null); setTip(""); setOtherOpen(false); setFlash(""); setGroup([]); };
 
@@ -588,9 +586,6 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <Stat label={t.todayTotal} value={fmt(todayTotal)} color={C.green} sub={`${todaySales.length} ${t.cuts}`} />
-      </div>
       {workers.length===0 ? <Empty text={t.noWorkers} /> : (
         <>
           <div style={sectionLbl}>{t.pickWorker}</div>
