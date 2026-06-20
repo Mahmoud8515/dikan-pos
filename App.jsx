@@ -35,6 +35,7 @@ const T = {
     newService: "Xizmeta nû", price: "Biha",
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
+    tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê",
     workerSummary: "Performansa karkeran", cuts: "firotan", avg: "Navînî",
     topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû", periodCustom: "Taybet",
     dateRange: "Navbera dîrokê", from: "Ji", to: "Heta", thisWeek: "Vê hefteyê", lastWeek: "Hefteya borî", lastMonth: "Meha borî", apply: "Bicîbîne",
@@ -70,6 +71,7 @@ const T = {
     newService: "خزمەتی نوێ", price: "نرخ",
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
+    tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن",
     workerSummary: "کارایی کارمەندان", cuts: "فرۆشتن", avg: "تێکڕا",
     topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو", periodCustom: "دڵخواز",
     dateRange: "ماوەی بەروار", from: "لە", to: "بۆ", thisWeek: "ئەم هەفتەیە", lastWeek: "هەفتەی ڕابردوو", lastMonth: "مانگی ڕابردوو", apply: "جێبەجێ بکە",
@@ -105,6 +107,7 @@ const T = {
     newService: "New service", price: "Price",
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
+    tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale",
     workerSummary: "Barber performance", cuts: "sales", avg: "Avg",
     topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All", periodCustom: "Custom",
     dateRange: "Date range", from: "From", to: "To", thisWeek: "This week", lastWeek: "Last week", lastMonth: "Last month", apply: "Apply",
@@ -1052,6 +1055,27 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
     }
   };
   const worker = workers.find(w=>w.id===selected);
+  // بخشيشات الحلاق المختار لهذا الشهر (الأحدث أولاً)
+  const workerTips = selected
+    ? tips.filter(x=>x.worker_id===selected && monthKey(x.tip_date)===curMonth)
+        .sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""))
+    : [];
+
+  // حذف بخشيشة
+  const delTip = async (id) => {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await supabase.from("tips").delete().eq("id", id);
+    if (!error) setTips(tips.filter(x=>x.id!==id));
+  };
+  // تعديل مبلغ بخشيشة
+  const editTip = async (id, current) => {
+    const input = window.prompt(t.editTipAmount, String(current));
+    if (input === null) return;                 // ألغى
+    const val = parseFloat(input);
+    if (isNaN(val) || val < 0) { window.alert(t.saveError); return; }
+    const { data, error } = await supabase.from("tips").update({ amount: val }).eq("id", id).select().single();
+    if (!error && data) setTips(tips.map(x=>x.id===id?data:x));
+  };
 
   return (
     <div>
@@ -1077,6 +1101,25 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
             <button style={{ ...doneBtn, opacity:busy?.6:1 }} onClick={submitTip} disabled={busy}>{t.done}</button>
             <button style={cancelBtn} onClick={()=>setSelected(null)}>{t.cancel}</button>
           </div>
+          {workerTips.length>0 && (
+            <div style={{ marginTop:16, borderTop:`1px solid ${C.line}`, paddingTop:14 }}>
+              <div style={{ ...sectionLbl, marginBottom:10 }}>{t.tipHistory}</div>
+              {workerTips.map(x=>(
+                <div key={x.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.line}` }}>
+                  <div style={{ display:"flex", flexDirection:"column" }}>
+                    <span style={{ fontWeight:800, color:C.brassDark, fontSize:15 }}>{fmt(Number(x.amount))}</span>
+                    <span style={{ fontSize:12, color:C.muted }}>
+                      {x.tip_date}{timeLabel(x.created_at)?` · ${timeLabel(x.created_at)}`:""}{x.from_sale?` · ${t.fromSale}`:""}
+                    </span>
+                  </div>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button style={miniBtn} onClick={()=>editTip(x.id, x.amount)}>{t.edit}</button>
+                    <button style={{ ...miniBtn, color:C.red }} onClick={()=>delTip(x.id)}>{t.delete}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
