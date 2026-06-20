@@ -792,6 +792,7 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
   const [customFrom, setCustomFrom] = useState(null);  // "YYYY-MM-DD"
   const [customTo, setCustomTo] = useState(null);
   const [calOpen, setCalOpen] = useState(false);
+  const [salesView, setSalesView] = useState(null);   // null=مخفي, "all"=الكل, أو id حلاق
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
 
@@ -820,8 +821,13 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
 
   const perWorker = workers.map(w=>{
     const ws = filtered.filter(s=>s.worker_id===w.id);
-    return { name:w.name, total:ws.reduce((s,x)=>s+Number(x.subtotal),0), count:ws.length };
+    return { id:w.id, name:w.name, total:ws.reduce((s,x)=>s+Number(x.subtotal),0), count:ws.length };
   }).filter(p=>p.count>0).sort((a,b)=>b.total-a.total);
+
+  // أي مبيعات تُعرض: null=مخفية, "all"=الكل, أو id حلاق معيّن
+  const shownSales = salesView==="all" ? filtered
+    : salesView ? filtered.filter(s=>s.worker_id===salesView)
+    : [];
 
   const svcCount = {};
   filtered.forEach(s=>(s.items||[]).forEach(i=>{ svcCount[i.name]=(svcCount[i.name]||0)+i.qty; }));
@@ -835,7 +841,7 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
 
   const exportCSV = () => {
     const rows = [["date","time","worker","services","subtotal","tip"]];
-    filtered.forEach(s=>rows.push([s.sold_at, timeLabel(s.created_at), wName(s.worker_id), (s.items||[]).map(i=>`${i.name} x${i.qty}`).join(" | "), s.subtotal, s.tip||0]));
+    (shownSales.length?shownSales:filtered).forEach(s=>rows.push([s.sold_at, timeLabel(s.created_at), wName(s.worker_id), (s.items||[]).map(i=>`${i.name} x${i.qty}`).join(" | "), s.subtotal, s.tip||0]));
     const csv = rows.map(r=>r.map(c=>`"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type:"text/csv" });
     const url = URL.createObjectURL(blob);
@@ -874,21 +880,36 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
       )}
       {perWorker.length>0 && (
         <div style={{ marginBottom:16 }}>
-          <div style={sectionLbl}>{t.workerSummary}</div>
-          {perWorker.map((p,i)=>(
-            <div key={i} style={row}>
-              <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
-              <span style={{ color:C.muted, fontSize:13 }}>{p.count} {t.cuts}</span>
-              <span style={{ fontWeight:800, color:C.green, minWidth:70, textAlign:"right" }}>{fmt(p.total)}</span>
-            </div>
-          ))}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <div style={{ ...sectionLbl, marginBottom:0 }}>{t.workerSummary}</div>
+            <button onClick={()=>setSalesView(salesView==="all"?null:"all")}
+              style={{ ...miniBtn, background: salesView==="all"?C.ink:C.card, color: salesView==="all"?C.bg:C.muted, borderColor: salesView==="all"?C.ink:C.line }}>
+              {t.periodAll}
+            </button>
+          </div>
+          {perWorker.map((p,i)=>{
+            const active = salesView===p.id;
+            return (
+              <button key={i} onClick={()=>setSalesView(active?null:p.id)}
+                style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer",
+                  borderColor: active?C.brass:C.line, background: active?"#fdf8ec":C.card }}>
+                <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
+                <span style={{ color:C.muted, fontSize:13 }}>{p.count} {t.cuts}</span>
+                <span style={{ fontWeight:800, color:C.green, minWidth:70, textAlign:"end" }}>{fmt(p.total)}</span>
+              </button>
+            );
+          })}
         </div>
       )}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-        <div style={{ ...sectionLbl, marginBottom:0 }}>{t.salesLog}</div>
-        {filtered.length>0 && <button style={exportBtn} onClick={exportCSV}>{t.export}</button>}
-      </div>
-      {filtered.length===0 ? <Empty text={t.noSales} /> : filtered.map(s=>(
+      {salesView && (
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ ...sectionLbl, marginBottom:0 }}>
+            {t.salesLog}{salesView!=="all" ? ` · ${wName(salesView)}` : ""}
+          </div>
+          {shownSales.length>0 && <button style={exportBtn} onClick={exportCSV}>{t.export}</button>}
+        </div>
+      )}
+      {salesView && (shownSales.length===0 ? <Empty text={t.noSales} /> : shownSales.map(s=>(
         <div key={s.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <span style={{ fontWeight:800, color:C.ink }}>{wName(s.worker_id)}</span>
@@ -903,7 +924,7 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
             <span>{s.sold_at}{timeLabel(s.created_at) ? ` · ${timeLabel(s.created_at)}` : ""}</span>
           </div>
         </div>
-      ))}
+      )))}
       {calOpen && (
         <DateRangeModal
           t={t} lang={lang} initialFrom={customFrom} initialTo={customTo}
