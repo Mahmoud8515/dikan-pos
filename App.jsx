@@ -966,6 +966,15 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   filtered.forEach(s=>(s.items||[]).forEach(i=>{ svcCount[i.name]=(svcCount[i.name]||0)+i.qty; }));
   const topSvc = Object.entries(svcCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
+  // إحصائيات المنتجات: لكل منتج، الكمية المباعة والإيراد
+  const prodStats = {};
+  filteredProducts.forEach(ps=>(ps.items||[]).forEach(i=>{
+    if (!prodStats[i.name]) prodStats[i.name] = { qty:0, total:0 };
+    prodStats[i.name].qty += i.qty;
+    prodStats[i.name].total += Number(i.price)*i.qty;
+  }));
+  const prodPerf = Object.entries(prodStats).map(([name,v])=>({ name, ...v })).sort((a,b)=>b.total-a.total);
+
   const del = async (id) => {
     if (!window.confirm(t.confirmDel)) return;
     const { error } = await supabase.from("sales").delete().eq("id", id);
@@ -1010,6 +1019,18 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
             <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom: i<topSvc.length-1?`1px solid ${C.line}`:"none" }}>
               <span style={{ color:C.ink, fontWeight:600 }}>{name}</span>
               <span style={{ color:C.brassDark, fontWeight:700 }}>{c}×</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {prodPerf.length>0 && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ ...sectionLbl, marginBottom:10 }}>{"\uD83D\uDED2 "}{t.products}</div>
+          {prodPerf.map((p,i)=>(
+            <div key={i} style={row}>
+              <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
+              <span style={{ color:C.muted, fontSize:13 }}>{p.qty}×</span>
+              <span style={{ fontWeight:800, color:C.brass, minWidth:70, textAlign:"end" }}>{fmt(p.total)}</span>
             </div>
           ))}
         </div>
