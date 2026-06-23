@@ -38,7 +38,7 @@ const T = {
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê", unpaid: "nehatiye dayîn", allPaid: "Hemû hat dayîn", payAll: "Hemûyî bide", paidLabel: "Hat dayîn", markPaid: "Wek dayîn nîşan bike",
     workerSummary: "Performansa karkeran", tipsHistory: "Dîroka baxşîşan", cuts: "firotan", avg: "Navînî",
-    topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû", periodCustom: "Taybet",
+    topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû", periodCustom: "Taybet", revenue: "Dahat", pickDate: "Dîrokê hilbijêre", pickDateFirst: "Pêşî dîrokê hilbijêre",
     dateRange: "Navbera dîrokê", from: "Ji", to: "Heta", thisWeek: "Vê hefteyê", lastWeek: "Hefteya borî", lastMonth: "Meha borî", apply: "Bicîbîne",
     tipsTotal: "Tevahiya baxşîşan", confirmDel: "Jê bibim?", export: "Derxe CSV",
     optional: "(bijarte)", loading: "Tê barkirin…", other: "Ya din", tipAmount: "Mîqdara baxşîşê",
@@ -75,7 +75,7 @@ const T = {
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن", unpaid: "نەدراوە", allPaid: "هەمووی دراوە", payAll: "هەمووی بدە", paidLabel: "دراوە", markPaid: "وەک دراو نیشانی بکە",
     workerSummary: "کارایی کارمەندان", tipsHistory: "مێژووی بەخشیش", cuts: "فرۆشتن", avg: "تێکڕا",
-    topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو", periodCustom: "دڵخواز",
+    topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو", periodCustom: "دڵخواز", revenue: "داهات", pickDate: "بەروار هەڵبژێرە", pickDateFirst: "سەرەتا بەروار هەڵبژێرە",
     dateRange: "ماوەی بەروار", from: "لە", to: "بۆ", thisWeek: "ئەم هەفتەیە", lastWeek: "هەفتەی ڕابردوو", lastMonth: "مانگی ڕابردوو", apply: "جێبەجێ بکە",
     tipsTotal: "کۆی بەخشیش", confirmDel: "بیسڕمەوە؟", export: "دەرهێنان CSV",
     optional: "(ئیختیاری)", loading: "بار دەکرێ…", other: "ئەوەی تر", tipAmount: "بڕی بەخشیش",
@@ -112,7 +112,7 @@ const T = {
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale", unpaid: "unpaid", allPaid: "All paid", payAll: "Pay all", paidLabel: "Paid", markPaid: "Mark paid",
     workerSummary: "Barber performance", tipsHistory: "Tips history", cuts: "sales", avg: "Avg",
-    topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All", periodCustom: "Custom",
+    topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All", periodCustom: "Custom", revenue: "Revenue", pickDate: "Pick dates", pickDateFirst: "Pick a date range first",
     dateRange: "Date range", from: "From", to: "To", thisWeek: "This week", lastWeek: "Last week", lastMonth: "Last month", apply: "Apply",
     tipsTotal: "Total tips", confirmDel: "Delete?", export: "Export CSV",
     optional: "(optional)", loading: "Loading…", other: "Other", tipAmount: "Tip amount",
@@ -966,6 +966,8 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const [customFrom, setCustomFrom] = useState(null);  // "YYYY-MM-DD"
   const [customTo, setCustomTo] = useState(null);
   const [calOpen, setCalOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);  // نافذة التقرير المخصّص
+  const [customType, setCustomType] = useState("revenue"); // revenue | tips | products
   const [salesView, setSalesView] = useState(null);   // null=مخفي, "all"=الكل, أو id حلاق
   const [tipsWorker, setTipsWorker] = useState(null);  // عامل مختار لعرض سجل بخشيشه الشهري
   const [prodView, setProdView] = useState(null);  // null=مخفي, "all"=الكل, أو اسم منتج
@@ -974,30 +976,59 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
 
   const inCustom = (d) => customFrom && customTo && d >= customFrom && d <= customTo;
 
+  // ===== حسابات التقرير المخصّص (مستقلة عن فلتر الصفحة) =====
+  const customReady = customFrom && customTo;
+  // إيرادات مقسّمة حسب الحلاق
+  const customRevenue = (() => {
+    if (!customReady) return { rows:[], total:0, count:0 };
+    const inRange = sales.filter(s=>inCustom(s.sold_at));
+    const byW = {};
+    inRange.forEach(s=>{ const w=s.worker_id; if(!byW[w]) byW[w]={total:0,count:0}; byW[w].total+=Number(s.subtotal||0); byW[w].count++; });
+    const rows = Object.entries(byW).map(([wid,v])=>({ name:wName(wid), ...v })).sort((a,b)=>b.total-a.total);
+    return { rows, total:inRange.reduce((s,x)=>s+Number(x.subtotal||0),0), count:inRange.length };
+  })();
+  // بخشيش مقسّم حسب العامل
+  const customTips = (() => {
+    if (!customReady) return { rows:[], total:0 };
+    const inRange = (tips||[]).filter(x=>inCustom(x.tip_date));
+    const byW = {};
+    inRange.forEach(x=>{ const w=x.worker_id; byW[w]=(byW[w]||0)+Number(x.amount||0); });
+    const rows = Object.entries(byW).map(([wid,total])=>({ name:wName(wid), total })).sort((a,b)=>b.total-a.total);
+    return { rows, total:inRange.reduce((s,x)=>s+Number(x.amount||0),0) };
+  })();
+  // منتجات مقسّمة حسب المنتج
+  const customProducts = (() => {
+    if (!customReady) return { rows:[], total:0, qty:0 };
+    const inRange = (productSales||[]).filter(x=>inCustom(x.sold_at));
+    const byP = {};
+    inRange.forEach(ps=>(ps.items||[]).forEach(i=>{ if(!byP[i.name]) byP[i.name]={qty:0,total:0}; byP[i.name].qty+=i.qty; byP[i.name].total+=Number(i.price)*i.qty; }));
+    const rows = Object.entries(byP).map(([name,v])=>({ name, ...v })).sort((a,b)=>b.total-a.total);
+    const total = inRange.reduce((s,x)=>s+Number(x.subtotal||0),0);
+    const qty = rows.reduce((s,r)=>s+r.qty,0);
+    return { rows, total, qty };
+  })();
+
   const filtered = useMemo(()=>{
     if (period==="today") return sales.filter(s=>s.sold_at===today);
     if (period==="month") return sales.filter(s=>monthKey(s.sold_at)===monthKey(today));
-    if (period==="custom") return sales.filter(s=>inCustom(s.sold_at));
     return sales;
-  }, [sales, period, today, customFrom, customTo]);
+  }, [sales, period, today]);
 
   // البخشيش يُحسب من جدول tips الكامل (يشمل بخشيش المبيعات + المُضاف يدوياً)
   const filteredTips = useMemo(()=>{
     const list = tips || [];
     if (period==="today") return list.filter(x=>x.tip_date===today);
     if (period==="month") return list.filter(x=>monthKey(x.tip_date)===monthKey(today));
-    if (period==="custom") return list.filter(x=>inCustom(x.tip_date));
     return list;
-  }, [tips, period, today, customFrom, customTo]);
+  }, [tips, period, today]);
 
   // مبيعات المنتجات المفلترة بنفس الفترة
   const filteredProducts = useMemo(()=>{
     const list = productSales || [];
     if (period==="today") return list.filter(x=>x.sold_at===today);
     if (period==="month") return list.filter(x=>monthKey(x.sold_at)===monthKey(today));
-    if (period==="custom") return list.filter(x=>inCustom(x.sold_at));
     return list;
-  }, [productSales, period, today, customFrom, customTo]);
+  }, [productSales, period, today]);
 
   const totalRev = filtered.reduce((sum,s)=>sum+Number(s.subtotal),0);
   const totalTips = filteredTips.reduce((sum,x)=>sum+Number(x.amount||0),0);
@@ -1079,13 +1110,8 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
         {[["today",t.periodToday],["month",t.periodMonth],["all",t.periodAll]].map(([k,l])=>(
           <button key={k} onClick={()=>setPeriod(k)} style={{ ...periodBtn, background:period===k?C.ink:"transparent", color:period===k?C.bg:C.muted }}>{l}</button>
         ))}
-        <button onClick={()=>setCalOpen(true)} style={{ ...periodBtn, background:period==="custom"?C.ink:"transparent", color:period==="custom"?C.bg:C.muted }}>{t.periodCustom}</button>
+        <button onClick={()=>setCustomOpen(true)} style={{ ...periodBtn, background:"transparent", color:C.muted }}>{t.periodCustom}</button>
       </div>
-      {period==="custom" && customFrom && customTo && (
-        <div style={{ textAlign:"center", marginBottom:12, color:C.muted, fontSize:13, fontWeight:700 }}>
-          {customFrom} → {customTo}
-        </div>
-      )}
       <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap" }}>
         <Stat label={t.monthTotal} value={fmt(totalRev)} color={C.green} sub={`${count} ${t.cuts}`} />
         <Stat label={t.tipsTotal} value={fmt(totalTips)} color={C.brassDark} />
@@ -1232,7 +1258,92 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
       {calOpen && (
         <DateRangeModal
           t={t} lang={lang} initialFrom={customFrom} initialTo={customTo}
-          onApply={(from,to)=>{ setCustomFrom(from); setCustomTo(to); setPeriod("custom"); setCalOpen(false); }}
+          onApply={(from,to)=>{ setCustomFrom(from); setCustomTo(to); setCalOpen(false); }}
+          onCancel={()=>setCalOpen(false)}
+        />
+      )}
+      {customOpen && (
+        <div style={groupOverlay} onClick={()=>setCustomOpen(false)}>
+          <div style={{ ...groupBox, maxWidth:480 }} onClick={(e)=>e.stopPropagation()}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+              <span style={{ fontWeight:900, fontSize:18, color:C.ink }}>{t.periodCustom}</span>
+              <button onClick={()=>setCustomOpen(false)} style={{ border:"none", background:"none", fontSize:22, color:C.muted, cursor:"pointer" }}>×</button>
+            </div>
+
+            {/* اختيار الفترة */}
+            <button onClick={()=>setCalOpen(true)} style={{ ...row, width:"100%", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom:14, justifyContent:"space-between" }}>
+              <span style={{ color:C.muted }}>{t.dateRange}</span>
+              <span style={{ fontWeight:800, color: customReady?C.ink:C.muted }}>
+                {customReady ? `${customFrom} → ${customTo}` : t.pickDate}
+              </span>
+            </button>
+
+            {/* اختيار النوع */}
+            <div style={{ display:"flex", gap:8, marginBottom:18, flexWrap:"wrap" }}>
+              {[["revenue",t.revenue],["tips",t.tipsFor],["products",t.products]].map(([k,l])=>(
+                <button key={k} onClick={()=>setCustomType(k)}
+                  style={{ ...tipChip, flex:1, borderColor:customType===k?C.brass:C.line, background:customType===k?C.ink:C.card, color:customType===k?C.bg:C.ink }}>{l}</button>
+              ))}
+            </div>
+
+            {/* النتيجة */}
+            {!customReady ? (
+              <div style={{ textAlign:"center", padding:"30px 10px", color:C.muted, fontSize:14 }}>{t.pickDateFirst}</div>
+            ) : customType==="revenue" ? (
+              customRevenue.rows.length===0 ? <Empty text={t.noSales} /> : (
+                <div style={{ ...formCard, padding:"6px 14px" }}>
+                  {customRevenue.rows.map((r,i)=>(
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.line}` }}>
+                      <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{r.name}</span>
+                      <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{r.count} {t.cuts}</span>
+                      <span style={{ fontWeight:800, color:C.green }}>{fmt(r.total)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0 6px" }}>
+                    <span style={{ fontWeight:800, color:C.ink }}>{t.total} · {customRevenue.count} {t.cuts}</span>
+                    <span style={{ fontWeight:900, color:C.green, fontSize:20 }}>{fmt(customRevenue.total)}</span>
+                  </div>
+                </div>
+              )
+            ) : customType==="tips" ? (
+              customTips.rows.length===0 ? <Empty text={t.noSales} /> : (
+                <div style={{ ...formCard, padding:"6px 14px" }}>
+                  {customTips.rows.map((r,i)=>(
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${C.line}` }}>
+                      <span style={{ fontWeight:700, color:C.ink }}>{r.name}</span>
+                      <span style={{ fontWeight:800, color:C.brassDark }}>{fmt(r.total)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0 6px" }}>
+                    <span style={{ fontWeight:800, color:C.ink }}>{t.total}</span>
+                    <span style={{ fontWeight:900, color:C.brassDark, fontSize:20 }}>{fmt(customTips.total)}</span>
+                  </div>
+                </div>
+              )
+            ) : (
+              customProducts.rows.length===0 ? <Empty text={t.noSales} /> : (
+                <div style={{ ...formCard, padding:"6px 14px" }}>
+                  {customProducts.rows.map((r,i)=>(
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.line}` }}>
+                      <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{r.name}</span>
+                      <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{r.qty}×</span>
+                      <span style={{ fontWeight:800, color:C.brass }}>{fmt(r.total)}</span>
+                    </div>
+                  ))}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 0 6px" }}>
+                    <span style={{ fontWeight:800, color:C.ink }}>{t.total} · {customProducts.qty}×</span>
+                    <span style={{ fontWeight:900, color:C.brass, fontSize:20 }}>{fmt(customProducts.total)}</span>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+      {calOpen && (
+        <DateRangeModal
+          t={t} lang={lang} initialFrom={customFrom} initialTo={customTo}
+          onApply={(from,to)=>{ setCustomFrom(from); setCustomTo(to); setCalOpen(false); }}
           onCancel={()=>setCalOpen(false)}
         />
       )}
