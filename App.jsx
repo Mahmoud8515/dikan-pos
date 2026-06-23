@@ -26,7 +26,7 @@ const T = {
     checkout: "Tomar bike",
     noWorkerFirst: "Pêşî karkerekî hilbijêre", noServiceFirst: "Bi kêmanî xizmetekê hilbijêre",
     saveError: "Tomar nebû. Înternetê kontrol bike û dîsa biceribîne.",
-    group: "Kom", groupBill: "Hesabê komê", addPerson: "Kesek zêde bike", addAnother: "Zêde bike", next: "Pêş", edit: "Biguherîne", splitNote: "tê parvekirin",
+    group: "Kom", groupBill: "Hesabê komê", addPerson: "Kesek zêde bike", addAnother: "Zêde bike", next: "Pêş", edit: "Biguherîne", splitNote: "tê parvekirin", addToBill: "Zêde bike",
     saved: "Hat tomarkirin ✓",
     done: "Temam", cancel: "Betal", delete: "Jê bibe",
     salesLog: "Firotan", noSales: "Hîn tu firotan tune.",
@@ -63,7 +63,7 @@ const T = {
     checkout: "تۆمار بکە",
     noWorkerFirst: "یەکەم کارمەندێک هەڵبژێرە", noServiceFirst: "بەلایەنی کەم خزمەتێک هەڵبژێرە",
     saveError: "تۆمار نەکرا. ئینتەرنێت بپشکنە و دووبارە هەوڵ بدە.",
-    group: "گرووپ", groupBill: "حیسابی گرووپ", addPerson: "کەسێک زیاد بکە", addAnother: "زیاد بکە", next: "دواتر", edit: "دەستکاری", splitNote: "دابەش دەکرێت",
+    group: "گرووپ", groupBill: "حیسابی گرووپ", addPerson: "کەسێک زیاد بکە", addAnother: "زیاد بکە", next: "دواتر", edit: "دەستکاری", splitNote: "دابەش دەکرێت", addToBill: "زیاد بکە بۆ حیساب",
     saved: "تۆمار کرا ✓",
     done: "تەمام", cancel: "پاشگەزبوونەوە", delete: "سڕینەوە",
     salesLog: "فرۆشتن", noSales: "هێشتا هیچ فرۆشتنێک نیە.",
@@ -100,7 +100,7 @@ const T = {
     checkout: "Save",
     noWorkerFirst: "Select a barber first", noServiceFirst: "Select at least one service",
     saveError: "Not saved. Check your internet and try again.",
-    group: "Group", groupBill: "Group bill", addPerson: "Add a person", addAnother: "Add", next: "Next", edit: "Edit", splitNote: "split evenly",
+    group: "Group", groupBill: "Group bill", addPerson: "Add a person", addAnother: "Add", next: "Next", edit: "Edit", splitNote: "split evenly", addToBill: "Add to bill",
     saved: "Saved ✓",
     done: "Done", cancel: "Cancel", delete: "Delete",
     salesLog: "Sales", noSales: "No sales yet.",
@@ -490,6 +490,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const [groupOpen, setGroupOpen] = useState(false); // هل النافذة مفتوحة
   const [editIdx, setEditIdx] = useState(null);      // فهرس الشخص الجاري تعديله (أو null)
   const [prodOpen, setProdOpen] = useState(false);   // نافذة المنتجات
+  const [prodCart, setProdCart] = useState({});       // المنتجات المضافة للسلة قبل الحفظ { id: qty }
 
   const cartList = Object.entries(cart).filter(([,q])=>q>0).map(([id,q])=>({ s: services.find(x=>x.id===id), q })).filter(x=>x.s);
   const subtotal = cartList.reduce((sum,{s,q})=>sum+Number(s.price)*q, 0);
@@ -502,14 +503,17 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const groupSubtotal = group.reduce((sum,p)=>sum+cartSubtotal(p.cart), 0);
   // المجموع الكلي: لو مجموعة، نجمع كل الأشخاص؛ غير هيك الشخص العادي
   const billSubtotal = inGroup ? groupSubtotal : subtotal;
-  const total = billSubtotal + tipNum;
+  // المنتجات المضافة للسلة
+  const prodList = Object.entries(prodCart).filter(([,q])=>q>0).map(([id,q])=>({ p:products.find(x=>x.id===id), q })).filter(x=>x.p);
+  const prodSubtotal = prodList.reduce((sum,{p,q})=>sum+Number(p.price)*q, 0);
+  const total = billSubtotal + prodSubtotal + tipNum;
 
   const inc = (id) => setCart(c=>({ ...c, [id]:(c[id]||0)+1 }));
   const dec = (id) => setCart(c=>({ ...c, [id]:Math.max(0,(c[id]||0)-1) }));
 
   const today = todayISO();
 
-  const reset = () => { setCart({}); setWorker(null); setTip(""); setOtherOpen(false); setFlash(""); setGroup([]); };
+  const reset = () => { setCart({}); setWorker(null); setTip(""); setOtherOpen(false); setFlash(""); setGroup([]); setProdCart({}); };
 
   const checkout = async () => {
     // وضع المجموعة
@@ -537,6 +541,8 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
         }
         setSales([...newSales, ...sales]);
         if (newTips.length) setTips([...newTips, ...tips]);
+        const okP = await persistProducts();
+        if (!okP) { setFlash(t.saveError); setBusy(false); return; }
         reset(); setOk(true); setTimeout(()=>setOk(false), 1600);
       } catch (e) {
         setFlash(t.saveError);
@@ -545,23 +551,32 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
       }
       return;
     }
-    // الوضع العادي (شخص واحد)
-    if (!worker) { setFlash(t.noWorkerFirst); return; }
-    if (cartList.length === 0) { setFlash(t.noServiceFirst); return; }
+    // الوضع العادي (شخص واحد) — أو منتجات فقط بدون حلاق
+    const hasServices = cartList.length > 0;
+    // لو ما في خدمات ولا منتجات: لا شيء للحفظ
+    if (!hasServices && prodList.length === 0) { setFlash(t.noServiceFirst); return; }
+    // لو في خدمات، لازم حلاق
+    if (hasServices && !worker) { setFlash(t.noWorkerFirst); return; }
     setBusy(true);
     try {
-      const items = cartList.map(({s,q})=>({ serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }));
-      const { data: sale, error } = await supabase.from("sales").insert({
-        shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
-      }).select().single();
-      if (error || !sale) { setFlash(t.saveError); return; }
-      setSales([sale, ...sales]);
-      if (tipNum > 0) {
-        const { data: tipRow } = await supabase.from("tips").insert({
-          shop_id: shop.id, branch_id: branchId, worker_id: worker, amount: tipNum, from_sale: true, tip_date: today,
+      // احفظ فاتورة الخدمات لو فيه خدمات
+      if (hasServices) {
+        const items = cartList.map(({s,q})=>({ serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }));
+        const { data: sale, error } = await supabase.from("sales").insert({
+          shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
         }).select().single();
-        if (tipRow) setTips([tipRow, ...tips]);
+        if (error || !sale) { setFlash(t.saveError); return; }
+        setSales([sale, ...sales]);
+        if (tipNum > 0) {
+          const { data: tipRow } = await supabase.from("tips").insert({
+            shop_id: shop.id, branch_id: branchId, worker_id: worker, amount: tipNum, from_sale: true, tip_date: today,
+          }).select().single();
+          if (tipRow) setTips([tipRow, ...tips]);
+        }
       }
+      // احفظ المنتجات لو فيه منتجات
+      const okP = await persistProducts();
+      if (!okP) { setFlash(t.saveError); return; }
       reset(); setOk(true); setTimeout(()=>setOk(false), 1600);
     } catch (e) {
       setFlash(t.saveError);
@@ -593,25 +608,28 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   // حذف شخص من المجموعة
   const removePerson = (idx) => setGroup(g => g.filter((_,i)=>i!==idx));
 
-  // حفظ بيع منتجات (بدون حلاق، بدون بخشيش)
-  const saveProductSale = async (pcart) => {
-    const items = Object.entries(pcart).filter(([,q])=>q>0)
-      .map(([id,q])=>{ const p=products.find(x=>x.id===id); return { productId:p.id, name:p.name, price:Number(p.price), qty:q }; });
-    if (items.length===0) { setProdOpen(false); return; }
+  // "إضافة": ضيف المنتجات المختارة لسلة الفاتورة (تبقى معروضة حتى الحفظ النهائي)
+  const addProductsToCart = (pcart) => {
+    setProdCart(prev => {
+      const merged = { ...prev };
+      Object.entries(pcart).forEach(([id,q])=>{ if (q>0) merged[id] = (merged[id]||0) + q; });
+      return merged;
+    });
+    setProdOpen(false);
+  };
+  const decProd = (id) => setProdCart(c=>{ const n={...c}; n[id]=Math.max(0,(n[id]||0)-1); if(n[id]===0) delete n[id]; return n; });
+
+  // حفظ بيع المنتجات في قاعدة البيانات (يُستدعى من الحفظ النهائي). يرجّع true لو نجح أو ما في منتجات.
+  const persistProducts = async () => {
+    if (prodList.length===0) return true;
+    const items = prodList.map(({p,q})=>({ productId:p.id, name:p.name, price:Number(p.price), qty:q }));
     const sub = items.reduce((sum,it)=>sum+it.price*it.qty, 0);
-    setBusy(true);
-    try {
-      const { data, error } = await supabase.from("product_sales").insert({
-        shop_id: shop.id, branch_id: branchId, items, subtotal: sub, sold_at: today,
-      }).select().single();
-      if (error || !data) { setFlash(t.saveError); return; }
-      setProductSales([data, ...productSales]);
-      setProdOpen(false); setOk(true); setTimeout(()=>setOk(false), 1600);
-    } catch (e) {
-      setFlash(t.saveError);
-    } finally {
-      setBusy(false);
-    }
+    const { data, error } = await supabase.from("product_sales").insert({
+      shop_id: shop.id, branch_id: branchId, items, subtotal: sub, sold_at: today,
+    }).select().single();
+    if (error || !data) return false;
+    setProductSales(ps => [data, ...ps]);
+    return true;
   };
 
   return (
@@ -662,6 +680,22 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               <button onClick={openAddPerson} style={{ ...chip, borderColor:C.brass, background:C.card, color:C.brassDark, fontWeight:800, width:"100%", marginTop:4 }}>
                 {"+ "}{t.addPerson}
               </button>
+            </div>
+          )}
+          {prodList.length>0 && (
+            <div style={{ marginBottom:18 }}>
+              <div style={sectionLbl}>{"\uD83D\uDED2 "}{t.products}</div>
+              <div style={{ ...formCard, padding:"12px 14px" }}>
+                {prodList.map(({p,q})=>(
+                  <div key={p.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0" }}>
+                    <span style={{ fontWeight:700, color:C.ink }}>{p.name}{q>1?` ×${q}`:""}</span>
+                    <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                      <span style={{ fontWeight:800, color:C.brassDark }}>{fmt(Number(p.price)*q)}</span>
+                      <button onClick={()=>decProd(p.id)} style={{ ...miniBtn, color:C.red }}>−</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {!inGroup && (<>
@@ -720,7 +754,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               <div style={{ fontSize:30, fontWeight:900, color:C.ink }}>{fmt(total)}</div>
             </div>
             <div style={{ display:"flex", gap:8 }}>
-              {(billSubtotal>0||worker||inGroup) && <button style={clearBtn} onClick={reset}>{t.clear}</button>}
+              {(billSubtotal>0||worker||inGroup||prodList.length>0) && <button style={clearBtn} onClick={reset}>{t.clear}</button>}
               <button style={{ ...checkoutBtn, opacity:busy?.6:1 }} onClick={checkout} disabled={busy}>{t.checkout}</button>
             </div>
           </div>
@@ -741,7 +775,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
       {prodOpen && (
         <ProductModal
           products={products} t={t} fmt={fmt} busy={busy}
-          onSave={saveProductSale}
+          onSave={addProductsToCart}
           onCancel={()=>setProdOpen(false)}
         />
       )}
@@ -858,7 +892,7 @@ function ProductModal({ products, t, fmt, busy, onSave, onCancel }) {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8, gap:8, flexWrap:"wrap" }}>
           <span style={{ fontWeight:800, color:C.ink, fontSize:17 }}>{fmt(sub)}</span>
           <button onClick={()=>onSave(pc)} disabled={!valid}
-            style={{ ...checkoutBtn, background: valid?C.green:C.line, padding:"12px 22px", fontSize:15, opacity:busy?.6:1 }}>{t.done}</button>
+            style={{ ...checkoutBtn, background: valid?C.ink:C.line, padding:"12px 22px", fontSize:15, opacity:busy?.6:1 }}>{t.addToBill}</button>
         </div>
       </div>
     </div>
