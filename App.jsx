@@ -437,7 +437,7 @@ function Main({ session, lang, switchLang }) {
       </nav>
       <main style={main}>
         {tab==="pos" && <POSPage {...{shop,branchId,workers,services,sales,setSales,tips,setTips,products,productSales,setProductSales,t,lang,fmt}} />}
-        {tab==="sales" && <SalesPage {...{sales,setSales,workers,tips,productSales,setProductSales,t,lang,fmt}} />}
+        {tab==="sales" && <SalesPage {...{sales,setSales,workers,tips,setTips,productSales,setProductSales,t,lang,fmt}} />}
         {tab==="tips" && <TipsPage {...{shop,branchId,workers,tips,setTips,t,lang,fmt}} />}
         {tab==="services" && <SettingsPage {...{shop,setShop,branchId,branches,setBranches,switchBranch,workers,setWorkers,services,setServices,products,setProducts,t,lang,reload:loadAll}} />}
       </main>
@@ -540,7 +540,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
           newSales.push(sale);
           if (tipEach > 0) {
             const { data: tipRow } = await supabase.from("tips").insert({
-              shop_id: shop.id, branch_id: branchId, worker_id: p.worker, amount: tipEach, from_sale: true, tip_date: today,
+              shop_id: shop.id, branch_id: branchId, worker_id: p.worker, amount: tipEach, from_sale: true, sale_id: sale.id, tip_date: today,
             }).select().single();
             if (tipRow) newTips.push(tipRow);
           }
@@ -575,7 +575,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
         setSales([sale, ...sales]);
         if (tipNum > 0) {
           const { data: tipRow } = await supabase.from("tips").insert({
-            shop_id: shop.id, branch_id: branchId, worker_id: worker, amount: tipNum, from_sale: true, tip_date: today,
+            shop_id: shop.id, branch_id: branchId, worker_id: worker, amount: tipNum, from_sale: true, sale_id: sale.id, tip_date: today,
           }).select().single();
           if (tipRow) setTips([tipRow, ...tips]);
         }
@@ -961,7 +961,7 @@ function Stat({ label, value, color, sub }) {
 }
 
 /* ---------- التقارير ---------- */
-function SalesPage({ sales, setSales, workers, tips, productSales, setProductSales, t, lang, fmt }) {
+function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setProductSales, t, lang, fmt }) {
   const [period, setPeriod] = useState("month");
   const [customFrom, setCustomFrom] = useState(null);  // "YYYY-MM-DD"
   const [customTo, setCustomTo] = useState(null);
@@ -971,6 +971,8 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const [salesView, setSalesView] = useState(null);   // null=مخفي, "all"=الكل, أو id حلاق
   const [tipsWorker, setTipsWorker] = useState(null);  // عامل مختار لعرض سجل بخشيشه الشهري
   const [prodView, setProdView] = useState(null);  // null=مخفي, "all"=الكل, أو اسم منتج
+  const [expandMonth, setExpandMonth] = useState(null);      // شهر متوسّع بمبيعات الحلاق (وضع All)
+  const [expandProdMonth, setExpandProdMonth] = useState(null); // شهر متوسّع بمبيعات المنتجات (وضع All)
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
 
@@ -1046,10 +1048,26 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
     : salesView ? filtered.filter(s=>s.worker_id===salesView)
     : [];
 
+  // تجميع المبيعات المعروضة شهرياً (يُستخدم فقط مع فلتر All لتجنّب القوائم الطويلة)
+  const shownSalesByMonth = (() => {
+    if (period!=="all") return [];
+    const byM = {};
+    shownSales.forEach(s=>{ const mk=monthKey(s.sold_at); if(!byM[mk]) byM[mk]={total:0,count:0,list:[]}; byM[mk].total+=Number(s.subtotal||0); byM[mk].count++; byM[mk].list.push(s); });
+    return Object.entries(byM).map(([mk,v])=>({ mk, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
+  })();
+
   // عمليات بيع المنتجات المعروضة: حسب الفلتر (الكل أو منتج معيّن)
   const shownProductSales = prodView==="all" ? filteredProducts
     : prodView ? filteredProducts.filter(ps=>(ps.items||[]).some(i=>i.name===prodView))
     : [];
+
+  // تجميع مبيعات المنتجات شهرياً (فقط مع All)
+  const shownProdByMonth = (() => {
+    if (period!=="all") return [];
+    const byM = {};
+    shownProductSales.forEach(ps=>{ const mk=monthKey(ps.sold_at); if(!byM[mk]) byM[mk]={total:0,count:0,list:[]}; byM[mk].total+=Number(ps.subtotal||0); byM[mk].count++; byM[mk].list.push(ps); });
+    return Object.entries(byM).map(([mk,v])=>({ mk, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
+  })();
 
   // سجل البخشيش الشهري (كل الشهور، مستقل عن فلتر الفترة)
   const allTips = tips || [];
@@ -1084,7 +1102,12 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const del = async (id) => {
     if (!window.confirm(t.confirmDel)) return;
     const { error } = await supabase.from("sales").delete().eq("id", id);
-    if (!error) setSales(sales.filter(s=>s.id!==id));
+    if (!error) {
+      setSales(sales.filter(s=>s.id!==id));
+      // امسح البخشيش المربوط بهذه البيعة (إن وجد)
+      await supabase.from("tips").delete().eq("sale_id", id);
+      setTips((tips||[]).filter(x=>x.sale_id!==id));
+    }
   };
 
   // حذف عملية بيع منتج
@@ -1158,7 +1181,35 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
               <div style={{ ...sectionLbl, marginBottom:8 }}>
                 {t.productSalesList}{prodView!=="all" ? ` · ${prodView}` : ""}
               </div>
-              {shownProductSales.length===0 ? <Empty text={t.noSales} /> : shownProductSales.map(ps=>(
+              {period==="all" ? (
+                shownProdByMonth.length===0 ? <Empty text={t.noSales} /> : shownProdByMonth.map(m=>(
+                  <div key={m.mk} style={{ marginBottom:8 }}>
+                    <button onClick={()=>setExpandProdMonth(expandProdMonth===m.mk?null:m.mk)}
+                      style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: expandProdMonth===m.mk?4:0,
+                        borderColor: expandProdMonth===m.mk?C.brass:C.line, background: expandProdMonth===m.mk?"#fdf8ec":C.card }}>
+                      <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{monthLabel(m.mk, lang)}</span>
+                      <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{m.count}×</span>
+                      <span style={{ fontWeight:800, color:C.brass }}>{fmt(m.total)}</span>
+                    </button>
+                    {expandProdMonth===m.mk && m.list.map(ps=>(
+                      <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
+                            {(ps.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}
+                          </span>
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <span style={{ fontWeight:800, color:C.brass }}>{fmt(Number(ps.subtotal))}</span>
+                            <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>delProductSale(ps.id)}>✕</button>
+                          </div>
+                        </div>
+                        <div style={{ fontSize:12, color:C.muted, textAlign:"end" }}>
+                          {ps.sold_at}{timeLabel(ps.created_at) ? ` · ${timeLabel(ps.created_at)}` : ""}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              ) : shownProductSales.length===0 ? <Empty text={t.noSales} /> : shownProductSales.map(ps=>(
                 <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
@@ -1210,7 +1261,35 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
           {shownSales.length>0 && <button style={exportBtn} onClick={exportCSV}>{t.export}</button>}
         </div>
       )}
-      {salesView && (shownSales.length===0 ? <Empty text={t.noSales} /> : shownSales.map(s=>(
+      {salesView && period==="all" ? (
+        shownSalesByMonth.length===0 ? <Empty text={t.noSales} /> : shownSalesByMonth.map(m=>(
+          <div key={m.mk} style={{ marginBottom:8 }}>
+            <button onClick={()=>setExpandMonth(expandMonth===m.mk?null:m.mk)}
+              style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: expandMonth===m.mk?4:0,
+                borderColor: expandMonth===m.mk?C.brass:C.line, background: expandMonth===m.mk?"#fdf8ec":C.card }}>
+              <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{monthLabel(m.mk, lang)}</span>
+              <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{m.count} {t.cuts}</span>
+              <span style={{ fontWeight:800, color:C.green }}>{fmt(m.total)}</span>
+            </button>
+            {expandMonth===m.mk && m.list.map(s=>(
+              <div key={s.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontWeight:800, color:C.ink }}>{wName(s.worker_id)}</span>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <span style={{ fontWeight:800, color:C.green }}>{fmt(Number(s.subtotal))}</span>
+                    {Number(s.tip)>0 && <span style={{ fontSize:12, color:C.brassDark }}>+{fmt(Number(s.tip))}</span>}
+                    <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>del(s.id)}>✕</button>
+                  </div>
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:C.muted }}>
+                  <span>{(s.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}</span>
+                  <span>{s.sold_at}{timeLabel(s.created_at) ? ` · ${timeLabel(s.created_at)}` : ""}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))
+      ) : salesView && (shownSales.length===0 ? <Empty text={t.noSales} /> : shownSales.map(s=>(
         <div key={s.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <span style={{ fontWeight:800, color:C.ink }}>{wName(s.worker_id)}</span>
