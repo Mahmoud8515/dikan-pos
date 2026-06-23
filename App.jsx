@@ -33,7 +33,7 @@ const T = {
     tipsFor: "Baxşîş", manageWorkers: "Karker", manageServices: "Xizmet",
     newWorker: "Navê karkerê nû", name: "Nav", add: "Zêde bike",
     newService: "Xizmeta nû", price: "Biha",
-    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan", showList: "Lîste", hideList: "Veşêre", productSalesList: "Firotina hilberan",
+    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan", productSalesList: "Firotina hilberan",
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê",
@@ -70,7 +70,7 @@ const T = {
     tipsFor: "بەخشیش", manageWorkers: "کارمەند", manageServices: "خزمەت",
     newWorker: "ناوی کارمەندی نوێ", name: "ناو", add: "زیاد بکە",
     newService: "خزمەتی نوێ", price: "نرخ",
-    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان", showList: "لیست", hideList: "شاردنەوە", productSalesList: "فرۆشتنی بەرهەمەکان",
+    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان", productSalesList: "فرۆشتنی بەرهەمەکان",
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن",
@@ -107,7 +107,7 @@ const T = {
     tipsFor: "Tips", manageWorkers: "Barbers", manageServices: "Services",
     newWorker: "New barber name", name: "Name", add: "Add",
     newService: "New service", price: "Price",
-    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales", showList: "List", hideList: "Hide", productSalesList: "Product sales",
+    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales", productSalesList: "Product sales",
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale",
@@ -916,7 +916,7 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const [customTo, setCustomTo] = useState(null);
   const [calOpen, setCalOpen] = useState(false);
   const [salesView, setSalesView] = useState(null);   // null=مخفي, "all"=الكل, أو id حلاق
-  const [prodSalesOpen, setProdSalesOpen] = useState(false);  // عرض قائمة مبيعات المنتجات
+  const [prodView, setProdView] = useState(null);  // null=مخفي, "all"=الكل, أو اسم منتج
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
 
@@ -961,6 +961,11 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   // أي مبيعات تُعرض: null=مخفية, "all"=الكل, أو id حلاق معيّن
   const shownSales = salesView==="all" ? filtered
     : salesView ? filtered.filter(s=>s.worker_id===salesView)
+    : [];
+
+  // عمليات بيع المنتجات المعروضة: حسب الفلتر (الكل أو منتج معيّن)
+  const shownProductSales = prodView==="all" ? filteredProducts
+    : prodView ? filteredProducts.filter(ps=>(ps.items||[]).some(i=>i.name===prodView))
     : [];
 
   const svcCount = {};
@@ -1035,22 +1040,30 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
         <div style={{ marginBottom:16 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <div style={{ ...sectionLbl, marginBottom:0 }}>{"\uD83D\uDED2 "}{t.products}</div>
-            <button onClick={()=>setProdSalesOpen(o=>!o)}
-              style={{ ...miniBtn, background: prodSalesOpen?C.ink:C.card, color: prodSalesOpen?C.bg:C.muted, borderColor: prodSalesOpen?C.ink:C.line }}>
-              {prodSalesOpen ? t.hideList : t.showList}
+            <button onClick={()=>setProdView(prodView==="all"?null:"all")}
+              style={{ ...miniBtn, background: prodView==="all"?C.ink:C.card, color: prodView==="all"?C.bg:C.muted, borderColor: prodView==="all"?C.ink:C.line }}>
+              {t.periodAll}
             </button>
           </div>
-          {prodPerf.map((p,i)=>(
-            <div key={i} style={row}>
-              <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
-              <span style={{ color:C.muted, fontSize:13 }}>{p.qty}×</span>
-              <span style={{ fontWeight:800, color:C.brass, minWidth:70, textAlign:"end" }}>{fmt(p.total)}</span>
-            </div>
-          ))}
-          {prodSalesOpen && (
+          {prodPerf.map((p,i)=>{
+            const active = prodView===p.name;
+            return (
+              <button key={i} onClick={()=>setProdView(active?null:p.name)}
+                style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box",
+                  fontFamily:"inherit", fontSize:15,
+                  borderColor: active?C.brass:C.line, background: active?"#fdf8ec":C.card }}>
+                <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
+                <span style={{ color:C.muted, fontSize:13 }}>{p.qty}×</span>
+                <span style={{ fontWeight:800, color:C.brass, minWidth:70, textAlign:"end" }}>{fmt(p.total)}</span>
+              </button>
+            );
+          })}
+          {prodView && (
             <div style={{ marginTop:12 }}>
-              <div style={{ ...sectionLbl, marginBottom:8 }}>{t.productSalesList}</div>
-              {filteredProducts.length===0 ? <Empty text={t.noSales} /> : filteredProducts.map(ps=>(
+              <div style={{ ...sectionLbl, marginBottom:8 }}>
+                {t.productSalesList}{prodView!=="all" ? ` · ${prodView}` : ""}
+              </div>
+              {shownProductSales.length===0 ? <Empty text={t.noSales} /> : shownProductSales.map(ps=>(
                 <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
