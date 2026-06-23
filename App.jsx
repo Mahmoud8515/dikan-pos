@@ -33,6 +33,7 @@ const T = {
     tipsFor: "Baxşîş", manageWorkers: "Karker", manageServices: "Xizmet",
     newWorker: "Navê karkerê nû", name: "Nav", add: "Zêde bike",
     newService: "Xizmeta nû", price: "Biha",
+    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan",
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê",
@@ -69,6 +70,7 @@ const T = {
     tipsFor: "بەخشیش", manageWorkers: "کارمەند", manageServices: "خزمەت",
     newWorker: "ناوی کارمەندی نوێ", name: "ناو", add: "زیاد بکە",
     newService: "خزمەتی نوێ", price: "نرخ",
+    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان",
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن",
@@ -105,6 +107,7 @@ const T = {
     tipsFor: "Tips", manageWorkers: "Barbers", manageServices: "Services",
     newWorker: "New barber name", name: "Name", add: "Add",
     newService: "New service", price: "Price",
+    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales",
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale",
@@ -317,6 +320,8 @@ function Main({ session, lang, switchLang }) {
   const [services, setServices] = useState([]);
   const [sales, setSales] = useState([]);
   const [tips, setTips] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [productSales, setProductSales] = useState([]);
   const [unlocked, setUnlocked] = useState(false);   // هل تم فتح القفل هذه الجلسة
   const [pinPrompt, setPinPrompt] = useState(null);   // التبويب المطلوب فتحه
 
@@ -337,15 +342,18 @@ function Main({ session, lang, switchLang }) {
 
   // تحميل بيانات فرع معيّن
   const loadBranchData = useCallback(async (bid) => {
-    if (!bid) { setWorkers([]); setServices([]); setSales([]); setTips([]); return; }
-    const [w, s, sa, ti] = await Promise.all([
+    if (!bid) { setWorkers([]); setServices([]); setSales([]); setTips([]); setProducts([]); setProductSales([]); return; }
+    const [w, s, sa, ti, pr, ps] = await Promise.all([
       supabase.from("workers").select("*").eq("active", true).eq("branch_id", bid).order("created_at"),
       supabase.from("services").select("*").eq("active", true).eq("branch_id", bid).order("sort_order"),
       supabase.from("sales").select("*").eq("branch_id", bid).order("created_at", { ascending: false }),
       supabase.from("tips").select("*").eq("branch_id", bid).order("created_at", { ascending: false }),
+      supabase.from("products").select("*").eq("active", true).eq("branch_id", bid).order("sort_order"),
+      supabase.from("product_sales").select("*").eq("branch_id", bid).order("created_at", { ascending: false }),
     ]);
     setWorkers(w.data || []); setServices(s.data || []);
     setSales(sa.data || []); setTips(ti.data || []);
+    setProducts(pr.data || []); setProductSales(ps.data || []);
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -428,10 +436,10 @@ function Main({ session, lang, switchLang }) {
         <TabBtn active={tab==="services"} onClick={()=>goTab("services")} label={t.tabServices} locked={PROTECTED.includes("services") && shop?.pin && !unlocked} />
       </nav>
       <main style={main}>
-        {tab==="pos" && <POSPage {...{shop,branchId,workers,services,sales,setSales,tips,setTips,t,lang,fmt}} />}
-        {tab==="sales" && <SalesPage {...{sales,setSales,workers,tips,t,lang,fmt}} />}
+        {tab==="pos" && <POSPage {...{shop,branchId,workers,services,sales,setSales,tips,setTips,products,productSales,setProductSales,t,lang,fmt}} />}
+        {tab==="sales" && <SalesPage {...{sales,setSales,workers,tips,productSales,setProductSales,t,lang,fmt}} />}
         {tab==="tips" && <TipsPage {...{shop,branchId,workers,tips,setTips,t,lang,fmt}} />}
-        {tab==="services" && <SettingsPage {...{shop,setShop,branchId,branches,setBranches,switchBranch,workers,setWorkers,services,setServices,t,lang,reload:loadAll}} />}
+        {tab==="services" && <SettingsPage {...{shop,setShop,branchId,branches,setBranches,switchBranch,workers,setWorkers,services,setServices,products,setProducts,t,lang,reload:loadAll}} />}
       </main>
       {pinPrompt && <PinModal shop={shop} t={t} lang={lang} onUnlock={onUnlock} onCancel={()=>setPinPrompt(null)} />}
     </div>
@@ -470,7 +478,7 @@ function TabBtn({ active, onClick, label, locked }) {
 }
 
 /* ---------- الكاشير ---------- */
-function POSPage({ shop, branchId, workers, services, sales, setSales, tips, setTips, t, lang, fmt }) {
+function POSPage({ shop, branchId, workers, services, sales, setSales, tips, setTips, products, productSales, setProductSales, t, lang, fmt }) {
   const [worker, setWorker] = useState(null);
   const [cart, setCart] = useState({});
   const [tip, setTip] = useState("");
@@ -481,6 +489,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const [group, setGroup] = useState([]);          // [{ worker, cart }] لكل شخص بالمجموعة
   const [groupOpen, setGroupOpen] = useState(false); // هل النافذة مفتوحة
   const [editIdx, setEditIdx] = useState(null);      // فهرس الشخص الجاري تعديله (أو null)
+  const [prodOpen, setProdOpen] = useState(false);   // نافذة المنتجات
 
   const cartList = Object.entries(cart).filter(([,q])=>q>0).map(([id,q])=>({ s: services.find(x=>x.id===id), q })).filter(x=>x.s);
   const subtotal = cartList.reduce((sum,{s,q})=>sum+Number(s.price)*q, 0);
@@ -584,6 +593,27 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   // حذف شخص من المجموعة
   const removePerson = (idx) => setGroup(g => g.filter((_,i)=>i!==idx));
 
+  // حفظ بيع منتجات (بدون حلاق، بدون بخشيش)
+  const saveProductSale = async (pcart) => {
+    const items = Object.entries(pcart).filter(([,q])=>q>0)
+      .map(([id,q])=>{ const p=products.find(x=>x.id===id); return { productId:p.id, name:p.name, price:Number(p.price), qty:q }; });
+    if (items.length===0) { setProdOpen(false); return; }
+    const sub = items.reduce((sum,it)=>sum+it.price*it.qty, 0);
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.from("product_sales").insert({
+        shop_id: shop.id, branch_id: branchId, items, subtotal: sub, sold_at: today,
+      }).select().single();
+      if (error || !data) { setFlash(t.saveError); return; }
+      setProductSales([data, ...productSales]);
+      setProdOpen(false); setOk(true); setTimeout(()=>setOk(false), 1600);
+    } catch (e) {
+      setFlash(t.saveError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div>
       {workers.length===0 ? <Empty text={t.noWorkers} /> : (
@@ -598,6 +628,12 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               <button onClick={openAddPerson}
                 style={{ ...chip, borderColor:C.brass, background:C.card, color:C.brassDark, fontWeight:800 }}>
                 {"\uD83D\uDC65 "}{t.group}
+              </button>
+            )}
+            {products.length>0 && (
+              <button onClick={()=>setProdOpen(true)}
+                style={{ ...chip, borderColor:C.brass, background:C.card, color:C.brassDark, fontWeight:800 }}>
+                {"\uD83D\uDED2 "}{t.products}
               </button>
             )}
           </div>
@@ -702,6 +738,13 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
           onCancel={()=>{ setGroupOpen(false); setEditIdx(null); }}
         />
       )}
+      {prodOpen && (
+        <ProductModal
+          products={products} t={t} fmt={fmt} busy={busy}
+          onSave={saveProductSale}
+          onCancel={()=>setProdOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -776,6 +819,52 @@ function GroupModal({ workers, services, t, lang, fmt, showNext, initial, onAdd,
   );
 }
 
+/* ---------- نافذة بيع المنتجات (بدون حلاق، بدون بخشيش) ---------- */
+function ProductModal({ products, t, fmt, busy, onSave, onCancel }) {
+  const [pc, setPc] = useState({});   // { productId: qty }
+  const list = Object.entries(pc).filter(([,q])=>q>0).map(([id,q])=>({ p:products.find(x=>x.id===id), q })).filter(x=>x.p);
+  const sub = list.reduce((sum,{p,q})=>sum+Number(p.price)*q, 0);
+  const inc = (id) => setPc(x=>({ ...x, [id]:(x[id]||0)+1 }));
+  const dec = (id) => setPc(x=>({ ...x, [id]:Math.max(0,(x[id]||0)-1) }));
+  const valid = list.length>0 && !busy;
+
+  return (
+    <div style={groupOverlay} onClick={onCancel}>
+      <div style={groupBox} onClick={(e)=>e.stopPropagation()}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <span style={{ fontWeight:900, fontSize:18, color:C.ink }}>{"\uD83D\uDED2 "}{t.products}</span>
+          <button onClick={onCancel} style={{ border:"none", background:"none", fontSize:22, color:C.muted, cursor:"pointer" }}>×</button>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))", gap:8, marginBottom:16 }}>
+          {products.map(p=>{
+            const q = pc[p.id]||0;
+            return (
+              <div key={p.id} style={{ ...svcCard, borderColor: q>0?C.brass:C.line, background: q>0?"#fdf8ec":C.card }}>
+                <button onClick={()=>inc(p.id)} style={svcTap}>
+                  <div style={{ fontWeight:800, fontSize:15, color:C.ink }}>{p.name}</div>
+                  <div style={{ fontSize:13, color:C.brassDark, fontWeight:700, marginTop:3 }}>{fmt(Number(p.price))}</div>
+                </button>
+                {q>0 && (
+                  <div style={qtyRow}>
+                    <button style={qtyBtn} onClick={()=>dec(p.id)}>−</button>
+                    <span style={{ fontWeight:800, color:C.ink, minWidth:20, textAlign:"center" }}>{q}</span>
+                    <button style={qtyBtn} onClick={()=>inc(p.id)}>+</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8, gap:8, flexWrap:"wrap" }}>
+          <span style={{ fontWeight:800, color:C.ink, fontSize:17 }}>{fmt(sub)}</span>
+          <button onClick={()=>onSave(pc)} disabled={!valid}
+            style={{ ...checkoutBtn, background: valid?C.green:C.line, padding:"12px 22px", fontSize:15, opacity:busy?.6:1 }}>{t.done}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Stat({ label, value, color, sub }) {
   return (
     <div style={{ ...statCard, flex:1, margin:0, padding:"14px 16px" }}>
@@ -787,7 +876,7 @@ function Stat({ label, value, color, sub }) {
 }
 
 /* ---------- التقارير ---------- */
-function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
+function SalesPage({ sales, setSales, workers, tips, productSales, setProductSales, t, lang, fmt }) {
   const [period, setPeriod] = useState("month");
   const [customFrom, setCustomFrom] = useState(null);  // "YYYY-MM-DD"
   const [customTo, setCustomTo] = useState(null);
@@ -814,8 +903,18 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
     return list;
   }, [tips, period, today, customFrom, customTo]);
 
+  // مبيعات المنتجات المفلترة بنفس الفترة
+  const filteredProducts = useMemo(()=>{
+    const list = productSales || [];
+    if (period==="today") return list.filter(x=>x.sold_at===today);
+    if (period==="month") return list.filter(x=>monthKey(x.sold_at)===monthKey(today));
+    if (period==="custom") return list.filter(x=>inCustom(x.sold_at));
+    return list;
+  }, [productSales, period, today, customFrom, customTo]);
+
   const totalRev = filtered.reduce((sum,s)=>sum+Number(s.subtotal),0);
   const totalTips = filteredTips.reduce((sum,x)=>sum+Number(x.amount||0),0);
+  const productRev = filteredProducts.reduce((sum,x)=>sum+Number(x.subtotal||0),0);
   const count = filtered.length;
   const avg = count?totalRev/count:0;
 
@@ -866,6 +965,9 @@ function SalesPage({ sales, setSales, workers, tips, t, lang, fmt }) {
         <Stat label={t.monthTotal} value={fmt(totalRev)} color={C.green} sub={`${count} ${t.cuts}`} />
         <Stat label={t.tipsTotal} value={fmt(totalTips)} color={C.brassDark} />
         <Stat label={t.avg} value={fmt(avg)} color={C.blue} />
+        {(productSales||[]).length>0 && (
+          <Stat label={t.productRev} value={fmt(productRev)} color={C.brass} sub={`${filteredProducts.length}×`} />
+        )}
       </div>
       {topSvc.length>0 && (
         <div style={{ ...formCard, marginBottom:16 }}>
@@ -1144,10 +1246,12 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
 }
 
 /* ---------- الإعدادات: المحل + العمّال + الخدمات ---------- */
-function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBranch, workers, setWorkers, services, setServices, t, lang, reload }) {
+function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBranch, workers, setWorkers, services, setServices, products, setProducts, t, lang, reload }) {
   const [newName, setNewName] = useState("");
   const [svcN, setSvcN] = useState("");
   const [svcPrice, setSvcPrice] = useState("");
+  const [prodN, setProdN] = useState("");
+  const [prodPrice, setProdPrice] = useState("");
   const [shopName, setShopName] = useState(shop?.name || "");
   const [currency, setCurrency] = useState(shop?.currency || "USD");
   const [savedMsg, setSavedMsg] = useState(false);
@@ -1237,6 +1341,25 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
     const p = parseFloat(val); const price = isNaN(p)?0:p;
     setServices(services.map(s=>s.id===id?{...s, price}:s));
     await supabase.from("services").update({ price }).eq("id", id);
+  };
+  // ----- إدارة المنتجات -----
+  const addProduct = async () => {
+    const n = prodN.trim(); const p = parseFloat(prodPrice);
+    if (!n || !p || p<=0) return;
+    const { data, error } = await supabase.from("products").insert({
+      shop_id: shop.id, branch_id: branchId, name: n, price: p, sort_order: products.length+1,
+    }).select().single();
+    if (!error && data) { setProducts([...products, data]); setProdN(""); setProdPrice(""); }
+  };
+  const delProduct = async (id) => {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await supabase.from("products").update({ active: false }).eq("id", id);
+    if (!error) setProducts(products.filter(p=>p.id!==id));
+  };
+  const editProductPrice = async (id, val) => {
+    const p = parseFloat(val); const price = isNaN(p)?0:p;
+    setProducts(products.map(x=>x.id===id?{...x, price}:x));
+    await supabase.from("products").update({ price }).eq("id", id);
   };
 
   return (
@@ -1337,6 +1460,26 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
                 <span style={{ color:C.ink, fontWeight:600, flex:1 }}>{svcName(s,lang)}</span>
                 <input type="number" inputMode="decimal" defaultValue={s.price} onBlur={(e)=>editPrice(s.id, e.target.value)} style={{ ...inp, marginBottom:0, width:80, padding:"8px", textAlign:"center" }} />
                 <button style={delBtn} onClick={()=>delService(s.id)}>{t.delete}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={sectionLbl}>{"\uD83D\uDED2 "}{t.products}</div>
+      <div style={formCard}>
+        <div style={{ display:"flex", gap:8 }}>
+          <input value={prodN} onChange={(e)=>setProdN(e.target.value)} placeholder={t.newProduct} style={{ ...inp, marginBottom:0, flex:2 }} />
+          <input value={prodPrice} onChange={(e)=>setProdPrice(e.target.value)} placeholder={t.price} type="number" inputMode="decimal" style={{ ...inp, marginBottom:0, flex:1, minWidth:0 }} />
+          <button style={{ ...doneBtn, flex:"0 0 auto", width:"auto", padding:"0 18px" }} onClick={addProduct}>{t.add}</button>
+        </div>
+        {products.length===0 ? <div style={{ marginTop:12 }}><Empty text={t.noProducts} /></div> : (
+          <div style={{ marginTop:12 }}>
+            {products.map(p=>(
+              <div key={p.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.line}`, gap:8 }}>
+                <span style={{ color:C.ink, fontWeight:600, flex:1 }}>{p.name}</span>
+                <input type="number" inputMode="decimal" defaultValue={p.price} onBlur={(e)=>editProductPrice(p.id, e.target.value)} style={{ ...inp, marginBottom:0, width:80, padding:"8px", textAlign:"center" }} />
+                <button style={delBtn} onClick={()=>delProduct(p.id)}>{t.delete}</button>
               </div>
             ))}
           </div>
