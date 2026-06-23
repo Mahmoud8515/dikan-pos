@@ -37,7 +37,7 @@ const T = {
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê", unpaid: "nehatiye dayîn", allPaid: "Hemû hat dayîn", payAll: "Hemûyî bide", paidLabel: "Hat dayîn", markPaid: "Wek dayîn nîşan bike",
-    workerSummary: "Performansa karkeran", cuts: "firotan", avg: "Navînî",
+    workerSummary: "Performansa karkeran", tipsHistory: "Dîroka baxşîşan", cuts: "firotan", avg: "Navînî",
     topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû", periodCustom: "Taybet",
     dateRange: "Navbera dîrokê", from: "Ji", to: "Heta", thisWeek: "Vê hefteyê", lastWeek: "Hefteya borî", lastMonth: "Meha borî", apply: "Bicîbîne",
     tipsTotal: "Tevahiya baxşîşan", confirmDel: "Jê bibim?", export: "Derxe CSV",
@@ -74,7 +74,7 @@ const T = {
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن", unpaid: "نەدراوە", allPaid: "هەمووی دراوە", payAll: "هەمووی بدە", paidLabel: "دراوە", markPaid: "وەک دراو نیشانی بکە",
-    workerSummary: "کارایی کارمەندان", cuts: "فرۆشتن", avg: "تێکڕا",
+    workerSummary: "کارایی کارمەندان", tipsHistory: "مێژووی بەخشیش", cuts: "فرۆشتن", avg: "تێکڕا",
     topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو", periodCustom: "دڵخواز",
     dateRange: "ماوەی بەروار", from: "لە", to: "بۆ", thisWeek: "ئەم هەفتەیە", lastWeek: "هەفتەی ڕابردوو", lastMonth: "مانگی ڕابردوو", apply: "جێبەجێ بکە",
     tipsTotal: "کۆی بەخشیش", confirmDel: "بیسڕمەوە؟", export: "دەرهێنان CSV",
@@ -111,7 +111,7 @@ const T = {
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale", unpaid: "unpaid", allPaid: "All paid", payAll: "Pay all", paidLabel: "Paid", markPaid: "Mark paid",
-    workerSummary: "Barber performance", cuts: "sales", avg: "Avg",
+    workerSummary: "Barber performance", tipsHistory: "Tips history", cuts: "sales", avg: "Avg",
     topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All", periodCustom: "Custom",
     dateRange: "Date range", from: "From", to: "To", thisWeek: "This week", lastWeek: "Last week", lastMonth: "Last month", apply: "Apply",
     tipsTotal: "Total tips", confirmDel: "Delete?", export: "Export CSV",
@@ -967,6 +967,7 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const [customTo, setCustomTo] = useState(null);
   const [calOpen, setCalOpen] = useState(false);
   const [salesView, setSalesView] = useState(null);   // null=مخفي, "all"=الكل, أو id حلاق
+  const [tipsWorker, setTipsWorker] = useState(null);  // عامل مختار لعرض سجل بخشيشه الشهري
   const [prodView, setProdView] = useState(null);  // null=مخفي, "all"=الكل, أو اسم منتج
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
@@ -1018,6 +1019,23 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const shownProductSales = prodView==="all" ? filteredProducts
     : prodView ? filteredProducts.filter(ps=>(ps.items||[]).some(i=>i.name===prodView))
     : [];
+
+  // سجل البخشيش الشهري (كل الشهور، مستقل عن فلتر الفترة)
+  const allTips = tips || [];
+  const tipWorkers = workers.map(w=>({
+    id: w.id, name: w.name,
+    total: allTips.filter(x=>x.worker_id===w.id).reduce((s,x)=>s+Number(x.amount||0),0),
+  })).filter(p=>p.total>0).sort((a,b)=>b.total-a.total);
+  // تجميع بخشيش العامل المختار حسب الشهر
+  const tipsMonthly = (() => {
+    if (!tipsWorker) return [];
+    const byMonth = {};
+    allTips.filter(x=>x.worker_id===tipsWorker).forEach(x=>{
+      const mk = monthKey(x.tip_date);
+      byMonth[mk] = (byMonth[mk]||0) + Number(x.amount||0);
+    });
+    return Object.entries(byMonth).map(([mk,total])=>({ mk, total })).sort((a,b)=>b.mk.localeCompare(a.mk));
+  })();
 
   const svcCount = {};
   filtered.forEach(s=>(s.items||[]).forEach(i=>{ svcCount[i.name]=(svcCount[i.name]||0)+i.qty; }));
@@ -1182,6 +1200,35 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
           </div>
         </div>
       )))}
+      {tipWorkers.length>0 && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ ...sectionLbl, marginBottom:10 }}>{t.tipsHistory}</div>
+          {tipWorkers.map((p,i)=>{
+            const active = tipsWorker===p.id;
+            return (
+              <div key={p.id}>
+                <button onClick={()=>setTipsWorker(active?null:p.id)}
+                  style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box",
+                    fontFamily:"inherit", fontSize:15, marginBottom: active?4:8,
+                    borderColor: active?C.brass:C.line, background: active?"#fdf8ec":C.card }}>
+                  <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
+                  <span style={{ fontWeight:800, color:C.brassDark, minWidth:70, textAlign:"end" }}>{fmt(p.total)}</span>
+                </button>
+                {active && (
+                  <div style={{ ...formCard, marginBottom:8, padding:"6px 14px" }}>
+                    {tipsMonthly.map((m,mi)=>(
+                      <div key={m.mk} style={{ display:"flex", justifyContent:"space-between", padding:"9px 0", borderBottom: mi<tipsMonthly.length-1?`1px solid ${C.line}`:"none" }}>
+                        <span style={{ color:C.ink, fontWeight:600 }}>{monthLabel(m.mk, lang)}</span>
+                        <span style={{ fontWeight:800, color:C.brassDark }}>{fmt(m.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {calOpen && (
         <DateRangeModal
           t={t} lang={lang} initialFrom={customFrom} initialTo={customTo}
