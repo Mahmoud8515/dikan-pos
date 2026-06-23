@@ -140,7 +140,7 @@ const MONTHS = {
   en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
 };
 
-const TIP_PRESETS = [1, 2, 3, 5, 6, 7, 8, 9, 10];
+const TIP_PRESETS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const todayISO = () => {
   const d = new Date();
