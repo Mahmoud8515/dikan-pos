@@ -33,7 +33,7 @@ const T = {
     tipsFor: "Baxşîş", manageWorkers: "Karker", manageServices: "Xizmet",
     newWorker: "Navê karkerê nû", name: "Nav", add: "Zêde bike",
     newService: "Xizmeta nû", price: "Biha",
-    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan", productSalesList: "Firotina hilberan",
+    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan", discount: "Daxistin", productDiscounts: "Daxistina hilberan", serviceDiscounts: "Daxistina xizmetan", discountHint: "Rêjeyên daxistinê zêde bike (%)", productSalesList: "Firotina hilberan",
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê",
@@ -70,7 +70,7 @@ const T = {
     tipsFor: "بەخشیش", manageWorkers: "کارمەند", manageServices: "خزمەت",
     newWorker: "ناوی کارمەندی نوێ", name: "ناو", add: "زیاد بکە",
     newService: "خزمەتی نوێ", price: "نرخ",
-    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان", productSalesList: "فرۆشتنی بەرهەمەکان",
+    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان", discount: "داشکاندن", productDiscounts: "داشکاندنی بەرهەمەکان", serviceDiscounts: "داشکاندنی خزمەتەکان", discountHint: "ڕێژەی داشکاندن زیاد بکە (%)", productSalesList: "فرۆشتنی بەرهەمەکان",
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن",
@@ -107,7 +107,7 @@ const T = {
     tipsFor: "Tips", manageWorkers: "Barbers", manageServices: "Services",
     newWorker: "New barber name", name: "Name", add: "Add",
     newService: "New service", price: "Price",
-    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales", productSalesList: "Product sales",
+    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales", discount: "Discount", productDiscounts: "Product discounts", serviceDiscounts: "Service discounts", discountHint: "Add discount percentages (%)", productSalesList: "Product sales",
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale",
@@ -491,9 +491,13 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const [editIdx, setEditIdx] = useState(null);      // فهرس الشخص الجاري تعديله (أو null)
   const [prodOpen, setProdOpen] = useState(false);   // نافذة المنتجات
   const [prodCart, setProdCart] = useState({});       // المنتجات المضافة للسلة قبل الحفظ { id: qty }
+  const [prodDisc, setProdDisc] = useState(0);         // نسبة خصم المنتجات %
+  const [svcDisc, setSvcDisc] = useState(0);           // نسبة خصم الخدمات %
 
   const cartList = Object.entries(cart).filter(([,q])=>q>0).map(([id,q])=>({ s: services.find(x=>x.id===id), q })).filter(x=>x.s);
-  const subtotal = cartList.reduce((sum,{s,q})=>sum+Number(s.price)*q, 0);
+  const svcGross = cartList.reduce((sum,{s,q})=>sum+Number(s.price)*q, 0);
+  const svcDiscAmount = Math.round(svcGross * svcDisc) / 100;
+  const subtotal = svcGross - svcDiscAmount;   // مجموع الخدمات بعد الخصم (للشخص الواحد)
   const tipNum = parseFloat(tip) || 0;
 
   // حساب مجموع سلة أي شخص بالمجموعة
@@ -505,7 +509,9 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const billSubtotal = inGroup ? groupSubtotal : subtotal;
   // المنتجات المضافة للسلة
   const prodList = Object.entries(prodCart).filter(([,q])=>q>0).map(([id,q])=>({ p:products.find(x=>x.id===id), q })).filter(x=>x.p);
-  const prodSubtotal = prodList.reduce((sum,{p,q})=>sum+Number(p.price)*q, 0);
+  const prodGross = prodList.reduce((sum,{p,q})=>sum+Number(p.price)*q, 0);
+  const prodDiscAmount = Math.round(prodGross * prodDisc) / 100;
+  const prodSubtotal = prodGross - prodDiscAmount;
   const total = billSubtotal + prodSubtotal + tipNum;
 
   const inc = (id) => setCart(c=>({ ...c, [id]:(c[id]||0)+1 }));
@@ -513,7 +519,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
 
   const today = todayISO();
 
-  const reset = () => { setCart({}); setWorker(null); setTip(""); setOtherOpen(false); setFlash(""); setGroup([]); setProdCart({}); };
+  const reset = () => { setCart({}); setWorker(null); setTip(""); setOtherOpen(false); setFlash(""); setGroup([]); setProdCart({}); setProdDisc(0); setSvcDisc(0); };
 
   const checkout = async () => {
     // وضع المجموعة
@@ -563,7 +569,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
       if (hasServices) {
         const items = cartList.map(({s,q})=>({ serviceId:s.id, name:svcName(s,lang), price:Number(s.price), qty:q }));
         const { data: sale, error } = await supabase.from("sales").insert({
-          shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, sold_at: today,
+          shop_id: shop.id, branch_id: branchId, worker_id: worker, items, subtotal, tip: tipNum, discount: svcDisc, sold_at: today,
         }).select().single();
         if (error || !sale) { setFlash(t.saveError); return; }
         setSales([sale, ...sales]);
@@ -609,12 +615,13 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const removePerson = (idx) => setGroup(g => g.filter((_,i)=>i!==idx));
 
   // "إضافة": ضيف المنتجات المختارة لسلة الفاتورة (تبقى معروضة حتى الحفظ النهائي)
-  const addProductsToCart = (pcart) => {
+  const addProductsToCart = (pcart, disc) => {
     setProdCart(prev => {
       const merged = { ...prev };
       Object.entries(pcart).forEach(([id,q])=>{ if (q>0) merged[id] = (merged[id]||0) + q; });
       return merged;
     });
+    if (disc>0) setProdDisc(disc);   // آخر خصم مختار ينطبّق على كل المنتجات
     setProdOpen(false);
   };
   const decProd = (id) => setProdCart(c=>{ const n={...c}; n[id]=Math.max(0,(n[id]||0)-1); if(n[id]===0) delete n[id]; return n; });
@@ -623,9 +630,10 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
   const persistProducts = async () => {
     if (prodList.length===0) return true;
     const items = prodList.map(({p,q})=>({ productId:p.id, name:p.name, price:Number(p.price), qty:q }));
-    const sub = items.reduce((sum,it)=>sum+it.price*it.qty, 0);
+    const gross = items.reduce((sum,it)=>sum+it.price*it.qty, 0);
+    const sub = gross - Math.round(gross * prodDisc) / 100;   // المجموع بعد الخصم
     const { data, error } = await supabase.from("product_sales").insert({
-      shop_id: shop.id, branch_id: branchId, items, subtotal: sub, sold_at: today,
+      shop_id: shop.id, branch_id: branchId, items, subtotal: sub, discount: prodDisc, sold_at: today,
     }).select().single();
     if (error || !data) return false;
     setProductSales(ps => [data, ...ps]);
@@ -695,6 +703,12 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
                     </div>
                   </div>
                 ))}
+                {prodDisc>0 && (
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderTop:`1px solid ${C.line}`, marginTop:4 }}>
+                    <span style={{ color:C.red, fontWeight:700 }}>{t.discount} {prodDisc}%</span>
+                    <span style={{ color:C.red, fontWeight:800 }}>−{fmt(prodDiscAmount)}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -720,13 +734,31 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
               );
             })}
           </div>
+          {(shop?.service_discounts||[]).length>0 && cartList.length>0 && (
+            <div style={{ marginBottom:18 }}>
+              <div style={{ ...sectionLbl, marginBottom:8 }}>{t.discount}</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {shop.service_discounts.map(v=>(
+                  <button key={v} onClick={()=>setSvcDisc(svcDisc===v?0:v)}
+                    style={{ ...tipChip, borderColor:svcDisc===v?C.brass:C.line, background:svcDisc===v?C.ink:C.card, color:svcDisc===v?C.bg:C.ink }}>{v}%</button>
+                ))}
+                {svcDisc>0 && <button onClick={()=>setSvcDisc(0)} style={{ ...tipChip, borderColor:C.line, background:C.card, color:C.muted }}>{t.clear}</button>}
+              </div>
+            </div>
+          )}
           </>)}
           {billSubtotal>0 && (
             <div style={{ ...formCard, marginBottom:14, animation:"slideUp .2s" }}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
                 <span style={{ color:C.muted }}>{t.subtotal}</span>
-                <span style={{ fontWeight:700, color:C.ink }}>{fmt(billSubtotal)}</span>
+                <span style={{ fontWeight:700, color:C.ink }}>{fmt(inGroup ? billSubtotal : svcGross)}</span>
               </div>
+              {!inGroup && svcDisc>0 && (
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
+                  <span style={{ color:C.red }}>{t.discount} {svcDisc}%</span>
+                  <span style={{ fontWeight:700, color:C.red }}>−{fmt(svcDiscAmount)}</span>
+                </div>
+              )}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                 <span style={{ color:C.muted }}>{t.tipLabel} <span style={{ fontSize:11 }}>{t.optional}</span>{inGroup && tipNum>0 && <span style={{ fontSize:11, color:C.brassDark }}> · {t.splitNote}</span>}</span>
                 {tipNum>0 && <span style={{ fontWeight:800, color:C.brassDark }}>+{fmt(tipNum)}</span>}
@@ -774,7 +806,7 @@ function POSPage({ shop, branchId, workers, services, sales, setSales, tips, set
       )}
       {prodOpen && (
         <ProductModal
-          products={products} t={t} fmt={fmt} busy={busy}
+          products={products} discounts={Array.isArray(shop?.product_discounts)?shop.product_discounts:[]} t={t} fmt={fmt} busy={busy}
           onSave={addProductsToCart}
           onCancel={()=>setProdOpen(false)}
         />
@@ -854,10 +886,13 @@ function GroupModal({ workers, services, t, lang, fmt, showNext, initial, onAdd,
 }
 
 /* ---------- نافذة بيع المنتجات (بدون حلاق، بدون بخشيش) ---------- */
-function ProductModal({ products, t, fmt, busy, onSave, onCancel }) {
+function ProductModal({ products, discounts, t, fmt, busy, onSave, onCancel }) {
   const [pc, setPc] = useState({});   // { productId: qty }
+  const [disc, setDisc] = useState(0); // نسبة الخصم المختارة (%)
   const list = Object.entries(pc).filter(([,q])=>q>0).map(([id,q])=>({ p:products.find(x=>x.id===id), q })).filter(x=>x.p);
   const sub = list.reduce((sum,{p,q})=>sum+Number(p.price)*q, 0);
+  const discAmount = Math.round(sub * disc) / 100;
+  const finalTotal = sub - discAmount;
   const inc = (id) => setPc(x=>({ ...x, [id]:(x[id]||0)+1 }));
   const dec = (id) => setPc(x=>({ ...x, [id]:Math.max(0,(x[id]||0)-1) }));
   const valid = list.length>0 && !busy;
@@ -889,9 +924,25 @@ function ProductModal({ products, t, fmt, busy, onSave, onCancel }) {
             );
           })}
         </div>
+        {(discounts||[]).length>0 && list.length>0 && (
+          <div style={{ marginBottom:14 }}>
+            <div style={{ ...sectionLbl, marginBottom:8 }}>{t.discount}</div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+              {discounts.map(v=>(
+                <button key={v} onClick={()=>setDisc(disc===v?0:v)}
+                  style={{ ...tipChip, borderColor:disc===v?C.brass:C.line, background:disc===v?C.ink:C.card, color:disc===v?C.bg:C.ink }}>{v}%</button>
+              ))}
+              {disc>0 && <button onClick={()=>setDisc(0)} style={{ ...tipChip, borderColor:C.line, background:C.card, color:C.muted }}>{t.clear}</button>}
+            </div>
+          </div>
+        )}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8, gap:8, flexWrap:"wrap" }}>
-          <span style={{ fontWeight:800, color:C.ink, fontSize:17 }}>{fmt(sub)}</span>
-          <button onClick={()=>onSave(pc)} disabled={!valid}
+          <div>
+            {disc>0 && <div style={{ fontSize:13, color:C.muted, textDecoration:"line-through" }}>{fmt(sub)}</div>}
+            <span style={{ fontWeight:800, color:C.ink, fontSize:17 }}>{fmt(finalTotal)}</span>
+            {disc>0 && <span style={{ fontSize:13, color:C.red, fontWeight:700, marginInlineStart:8 }}>−{disc}%</span>}
+          </div>
+          <button onClick={()=>onSave(pc, disc)} disabled={!valid}
             style={{ ...checkoutBtn, background: valid?C.ink:C.line, padding:"12px 22px", fontSize:15, opacity:busy?.6:1 }}>{t.addToBill}</button>
         </div>
       </div>
@@ -1362,6 +1413,10 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
   const [pinMsg, setPinMsg] = useState(false);
   const [lockedPages, setLockedPages] = useState(Array.isArray(shop?.locked_pages) ? shop.locked_pages : []);
   const [newBranch, setNewBranch] = useState("");
+  const [prodDiscounts, setProdDiscounts] = useState(Array.isArray(shop?.product_discounts) ? shop.product_discounts : []);
+  const [svcDiscounts, setSvcDiscounts] = useState(Array.isArray(shop?.service_discounts) ? shop.service_discounts : []);
+  const [newProdDisc, setNewProdDisc] = useState("");
+  const [newSvcDisc, setNewSvcDisc] = useState("");
 
   // إضافة فرع جديد (مع 4 خدمات افتراضية)
   const addBranch = async () => {
@@ -1399,6 +1454,36 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
     const next = lockedPages.includes(page) ? lockedPages.filter(p=>p!==page) : [...lockedPages, page];
     setLockedPages(next);
     const { data } = await supabase.from("shops").update({ locked_pages: next }).eq("id", shop.id).select().single();
+    if (data) setShop(data);
+  };
+
+  // إدارة نِسَب الخصم (منتجات/خدمات)
+  const addProdDisc = async () => {
+    const v = parseInt(newProdDisc, 10);
+    if (isNaN(v) || v<=0 || v>=100 || prodDiscounts.includes(v)) { setNewProdDisc(""); return; }
+    const next = [...prodDiscounts, v].sort((a,b)=>a-b);
+    setProdDiscounts(next); setNewProdDisc("");
+    const { data } = await supabase.from("shops").update({ product_discounts: next }).eq("id", shop.id).select().single();
+    if (data) setShop(data);
+  };
+  const delProdDisc = async (v) => {
+    const next = prodDiscounts.filter(x=>x!==v);
+    setProdDiscounts(next);
+    const { data } = await supabase.from("shops").update({ product_discounts: next }).eq("id", shop.id).select().single();
+    if (data) setShop(data);
+  };
+  const addSvcDisc = async () => {
+    const v = parseInt(newSvcDisc, 10);
+    if (isNaN(v) || v<=0 || v>=100 || svcDiscounts.includes(v)) { setNewSvcDisc(""); return; }
+    const next = [...svcDiscounts, v].sort((a,b)=>a-b);
+    setSvcDiscounts(next); setNewSvcDisc("");
+    const { data } = await supabase.from("shops").update({ service_discounts: next }).eq("id", shop.id).select().single();
+    if (data) setShop(data);
+  };
+  const delSvcDisc = async (v) => {
+    const next = svcDiscounts.filter(x=>x!==v);
+    setSvcDiscounts(next);
+    const { data } = await supabase.from("shops").update({ service_discounts: next }).eq("id", shop.id).select().single();
     if (data) setShop(data);
   };
 
@@ -1587,6 +1672,40 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
             ))}
           </div>
         )}
+      </div>
+
+      <div style={sectionLbl}>{t.productDiscounts}</div>
+      <div style={{ ...formCard, marginBottom:20 }}>
+        <div style={{ fontSize:13, color:C.muted, marginBottom:10 }}>{t.discountHint}</div>
+        <div style={{ display:"flex", gap:8, marginBottom:prodDiscounts.length?12:0 }}>
+          <input value={newProdDisc} onChange={(e)=>setNewProdDisc(e.target.value)} placeholder="%" type="number" inputMode="numeric" style={{ ...inp, marginBottom:0, flex:1, minWidth:0 }} />
+          <button style={{ ...doneBtn, flex:"0 0 auto", width:"auto", padding:"0 18px" }} onClick={addProdDisc}>{t.add}</button>
+        </div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          {prodDiscounts.map(v=>(
+            <div key={v} style={{ display:"flex", alignItems:"center", gap:6, border:`1px solid ${C.brass}`, background:C.card, borderRadius:20, padding:"6px 8px 6px 14px" }}>
+              <span style={{ fontWeight:800, color:C.brassDark }}>{v}%</span>
+              <button onClick={()=>delProdDisc(v)} style={{ border:"none", background:"none", color:C.red, fontSize:16, cursor:"pointer", lineHeight:1, padding:"0 2px" }}>×</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={sectionLbl}>{t.serviceDiscounts}</div>
+      <div style={{ ...formCard, marginBottom:20 }}>
+        <div style={{ fontSize:13, color:C.muted, marginBottom:10 }}>{t.discountHint}</div>
+        <div style={{ display:"flex", gap:8, marginBottom:svcDiscounts.length?12:0 }}>
+          <input value={newSvcDisc} onChange={(e)=>setNewSvcDisc(e.target.value)} placeholder="%" type="number" inputMode="numeric" style={{ ...inp, marginBottom:0, flex:1, minWidth:0 }} />
+          <button style={{ ...doneBtn, flex:"0 0 auto", width:"auto", padding:"0 18px" }} onClick={addSvcDisc}>{t.add}</button>
+        </div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          {svcDiscounts.map(v=>(
+            <div key={v} style={{ display:"flex", alignItems:"center", gap:6, border:`1px solid ${C.brass}`, background:C.card, borderRadius:20, padding:"6px 8px 6px 14px" }}>
+              <span style={{ fontWeight:800, color:C.brassDark }}>{v}%</span>
+              <button onClick={()=>delSvcDisc(v)} style={{ border:"none", background:"none", color:C.red, fontSize:16, cursor:"pointer", lineHeight:1, padding:"0 2px" }}>×</button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
