@@ -36,7 +36,7 @@ const T = {
     products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan", discount: "Daxistin", productDiscounts: "Daxistina hilberan", serviceDiscounts: "Daxistina xizmetan", discountHint: "Rêjeyên daxistinê zêde bike (%)", productSalesList: "Firotina hilberan",
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
-    tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê",
+    tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê", unpaid: "nehatiye dayîn", allPaid: "Hemû hat dayîn", payAll: "Hemûyî bide", paidLabel: "Hat dayîn", markPaid: "Wek dayîn nîşan bike",
     workerSummary: "Performansa karkeran", cuts: "firotan", avg: "Navînî",
     topServices: "Xizmetên herî firotî", periodToday: "Îro", periodMonth: "Meh", periodAll: "Hemû", periodCustom: "Taybet",
     dateRange: "Navbera dîrokê", from: "Ji", to: "Heta", thisWeek: "Vê hefteyê", lastWeek: "Hefteya borî", lastMonth: "Meha borî", apply: "Bicîbîne",
@@ -73,7 +73,7 @@ const T = {
     products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان", discount: "داشکاندن", productDiscounts: "داشکاندنی بەرهەمەکان", serviceDiscounts: "داشکاندنی خزمەتەکان", discountHint: "ڕێژەی داشکاندن زیاد بکە (%)", productSalesList: "فرۆشتنی بەرهەمەکان",
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
-    tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن",
+    tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن", unpaid: "نەدراوە", allPaid: "هەمووی دراوە", payAll: "هەمووی بدە", paidLabel: "دراوە", markPaid: "وەک دراو نیشانی بکە",
     workerSummary: "کارایی کارمەندان", cuts: "فرۆشتن", avg: "تێکڕا",
     topServices: "زۆرترین فرۆشراو", periodToday: "ئەمڕۆ", periodMonth: "مانگ", periodAll: "هەموو", periodCustom: "دڵخواز",
     dateRange: "ماوەی بەروار", from: "لە", to: "بۆ", thisWeek: "ئەم هەفتەیە", lastWeek: "هەفتەی ڕابردوو", lastMonth: "مانگی ڕابردوو", apply: "جێبەجێ بکە",
@@ -110,7 +110,7 @@ const T = {
     products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales", discount: "Discount", productDiscounts: "Product discounts", serviceDiscounts: "Service discounts", discountHint: "Add discount percentages (%)", productSalesList: "Product sales",
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
-    tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale",
+    tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale", unpaid: "unpaid", allPaid: "All paid", payAll: "Pay all", paidLabel: "Paid", markPaid: "Mark paid",
     workerSummary: "Barber performance", cuts: "sales", avg: "Avg",
     topServices: "Top services", periodToday: "Today", periodMonth: "Month", periodAll: "All", periodCustom: "Custom",
     dateRange: "Date range", from: "From", to: "To", thisWeek: "This week", lastWeek: "Last week", lastMonth: "Last month", apply: "Apply",
@@ -1309,6 +1309,8 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
   const [busy, setBusy] = useState(false);
   const curMonth = monthKey(todayISO());
   const monthTotalFor = (wid) => tips.filter(x=>x.worker_id===wid && monthKey(x.tip_date)===curMonth).reduce((sum,x)=>sum+Number(x.amount),0);
+  // المبلغ غير المدفوع لكل عامل (هذا الشهر)
+  const unpaidFor = (wid) => tips.filter(x=>x.worker_id===wid && monthKey(x.tip_date)===curMonth && !x.paid).reduce((sum,x)=>sum+Number(x.amount),0);
   const grandTotal = workers.reduce((sum,w)=>sum+monthTotalFor(w.id),0);
 
   const submitTip = async () => {
@@ -1349,6 +1351,19 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
     const { data, error } = await supabase.from("tips").update({ amount: val }).eq("id", id).select().single();
     if (!error && data) setTips(tips.map(x=>x.id===id?data:x));
   };
+  // تبديل حالة الدفع لبخشيشة وحدة
+  const togglePaid = async (id, current) => {
+    const { data, error } = await supabase.from("tips").update({ paid: !current }).eq("id", id).select().single();
+    if (!error && data) setTips(tips.map(x=>x.id===id?data:x));
+  };
+  // دفع كل البخشيش غير المدفوع للعامل (هذا الشهر)
+  const payAll = async () => {
+    if (!selected) return;
+    const ids = workerTips.filter(x=>!x.paid).map(x=>x.id);
+    if (ids.length===0) return;
+    const { error } = await supabase.from("tips").update({ paid: true }).in("id", ids);
+    if (!error) setTips(tips.map(x=>ids.includes(x.id)?{...x, paid:true}:x));
+  };
 
   return (
     <div>
@@ -1358,12 +1373,20 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
       </div>
       {workers.length===0 ? <Empty text={t.noWorkers} /> : (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))", gap:10 }}>
-          {workers.map(w=>(
-            <button key={w.id} onClick={()=>{ setSelected(w.id); setAmount(""); }} style={{ ...svcCard, padding:"16px 14px", borderColor:selected===w.id?C.brass:C.line, background:selected===w.id?"#fdf8ec":C.card }}>
-              <div style={{ fontWeight:800, fontSize:16, color:C.ink }}>{w.name}</div>
-              <div style={{ fontSize:13, color:C.brassDark, fontWeight:700, marginTop:4 }}>{fmt(monthTotalFor(w.id))} {t.thisMonth}</div>
-            </button>
-          ))}
+          {workers.map(w=>{
+            const unpaid = unpaidFor(w.id);
+            return (
+              <button key={w.id} onClick={()=>{ setSelected(w.id); setAmount(""); }} style={{ ...svcCard, padding:"16px 14px", borderColor:selected===w.id?C.brass:C.line, background:selected===w.id?"#fdf8ec":C.card }}>
+                <div style={{ fontWeight:800, fontSize:16, color:C.ink }}>{w.name}</div>
+                <div style={{ fontSize:13, color:C.brassDark, fontWeight:700, marginTop:4 }}>{fmt(monthTotalFor(w.id))} {t.thisMonth}</div>
+                {monthTotalFor(w.id)>0 && (
+                  <div style={{ fontSize:11, fontWeight:800, marginTop:3, color: unpaid>0?C.red:C.green }}>
+                    {unpaid>0 ? `${fmt(unpaid)} ${t.unpaid}` : `${t.allPaid} ✓`}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
       {worker && (
@@ -1377,15 +1400,30 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
           {workerTips.length>0 && (
             <div style={{ marginTop:16, borderTop:`1px solid ${C.line}`, paddingTop:14 }}>
               <div style={{ ...sectionLbl, marginBottom:10 }}>{t.tipHistory}</div>
+              {(() => {
+                const unpaid = workerTips.filter(x=>!x.paid).reduce((s,x)=>s+Number(x.amount),0);
+                return unpaid>0 ? (
+                  <button onClick={payAll} style={{ ...doneBtn, background:C.green, marginBottom:14 }}>
+                    ✓ {t.payAll} ({fmt(unpaid)} {t.unpaid})
+                  </button>
+                ) : (
+                  <div style={{ textAlign:"center", color:C.green, fontWeight:800, fontSize:14, marginBottom:14 }}>{t.allPaid} ✓</div>
+                );
+              })()}
               {workerTips.map(x=>(
-                <div key={x.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.line}` }}>
+                <div key={x.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.line}`, opacity:x.paid?.55:1 }}>
                   <div style={{ display:"flex", flexDirection:"column" }}>
-                    <span style={{ fontWeight:800, color:C.brassDark, fontSize:15 }}>{fmt(Number(x.amount))}</span>
+                    <span style={{ fontWeight:800, color:x.paid?C.green:C.brassDark, fontSize:15 }}>{fmt(Number(x.amount))}</span>
                     <span style={{ fontSize:12, color:C.muted }}>
                       {x.tip_date}{timeLabel(x.created_at)?` · ${timeLabel(x.created_at)}`:""}{x.from_sale?` · ${t.fromSale}`:""}
                     </span>
+                    {x.paid && <span style={{ fontSize:11, color:C.green, fontWeight:800, marginTop:2 }}>✓ {t.paidLabel}</span>}
                   </div>
-                  <div style={{ display:"flex", gap:8 }}>
+                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                    <button style={x.paid ? { ...miniBtn, borderColor:C.green, background:C.green, color:"#fff" } : { ...miniBtn, borderColor:C.green, color:C.green }}
+                      onClick={()=>togglePaid(x.id, x.paid)}>
+                      {x.paid ? `✓ ${t.paidLabel}` : t.markPaid}
+                    </button>
                     <button style={miniBtn} onClick={()=>editTip(x.id, x.amount)}>{t.edit}</button>
                     <button style={{ ...miniBtn, color:C.red }} onClick={()=>delTip(x.id)}>{t.delete}</button>
                   </div>
