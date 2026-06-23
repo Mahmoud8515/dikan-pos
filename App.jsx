@@ -33,7 +33,7 @@ const T = {
     tipsFor: "Baxşîş", manageWorkers: "Karker", manageServices: "Xizmet",
     newWorker: "Navê karkerê nû", name: "Nav", add: "Zêde bike",
     newService: "Xizmeta nû", price: "Biha",
-    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan",
+    products: "Hilber", newProduct: "Hilbera nû", noProducts: "Hîn tu hilber tune.", productRev: "Dahata hilberan", showList: "Lîste", hideList: "Veşêre", productSalesList: "Firotina hilberan",
     noWorkers: "Hîn tu karker tune. Di Mîheng de zêde bike.", noServices: "Hîn tu xizmet tune.",
     thisMonth: "vê mehê", tipFor: "Baxşîş ji bo", amount: "Şumar",
     tipHistory: "Baxşîşên vê mehê", editTipAmount: "Mîqdara nû ya baxşîşê:", fromSale: "ji firotinê",
@@ -70,7 +70,7 @@ const T = {
     tipsFor: "بەخشیش", manageWorkers: "کارمەند", manageServices: "خزمەت",
     newWorker: "ناوی کارمەندی نوێ", name: "ناو", add: "زیاد بکە",
     newService: "خزمەتی نوێ", price: "نرخ",
-    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان",
+    products: "بەرهەمەکان", newProduct: "بەرهەمی نوێ", noProducts: "هێشتا هیچ بەرهەمێک نیە.", productRev: "داهاتی بەرهەمەکان", showList: "لیست", hideList: "شاردنەوە", productSalesList: "فرۆشتنی بەرهەمەکان",
     noWorkers: "هێشتا کارمەند نیە. لە ڕێکخستن زیادی بکە.", noServices: "هێشتا خزمەت نیە.",
     thisMonth: "ئەم مانگە", tipFor: "بەخشیش بۆ", amount: "بڕ",
     tipHistory: "بەخشیشەکانی ئەم مانگە", editTipAmount: "بڕی نوێی بەخشیش:", fromSale: "لە فرۆشتن",
@@ -107,7 +107,7 @@ const T = {
     tipsFor: "Tips", manageWorkers: "Barbers", manageServices: "Services",
     newWorker: "New barber name", name: "Name", add: "Add",
     newService: "New service", price: "Price",
-    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales",
+    products: "Products", newProduct: "New product", noProducts: "No products yet.", productRev: "Product sales", showList: "List", hideList: "Hide", productSalesList: "Product sales",
     noWorkers: "No barbers yet. Add them in Settings.", noServices: "No services yet.",
     thisMonth: "this month", tipFor: "Tip for", amount: "Amount",
     tipHistory: "This month's tips", editTipAmount: "New tip amount:", fromSale: "from sale",
@@ -916,6 +916,7 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
   const [customTo, setCustomTo] = useState(null);
   const [calOpen, setCalOpen] = useState(false);
   const [salesView, setSalesView] = useState(null);   // null=مخفي, "all"=الكل, أو id حلاق
+  const [prodSalesOpen, setProdSalesOpen] = useState(false);  // عرض قائمة مبيعات المنتجات
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
 
@@ -981,6 +982,13 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
     if (!error) setSales(sales.filter(s=>s.id!==id));
   };
 
+  // حذف عملية بيع منتج
+  const delProductSale = async (id) => {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await supabase.from("product_sales").delete().eq("id", id);
+    if (!error) setProductSales(productSales.filter(p=>p.id!==id));
+  };
+
   const exportCSV = () => {
     const rows = [["date","time","worker","services","subtotal","tip"]];
     (shownSales.length?shownSales:filtered).forEach(s=>rows.push([s.sold_at, timeLabel(s.created_at), wName(s.worker_id), (s.items||[]).map(i=>`${i.name} x${i.qty}`).join(" | "), s.subtotal, s.tip||0]));
@@ -1025,7 +1033,13 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
       )}
       {prodPerf.length>0 && (
         <div style={{ marginBottom:16 }}>
-          <div style={{ ...sectionLbl, marginBottom:10 }}>{"\uD83D\uDED2 "}{t.products}</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <div style={{ ...sectionLbl, marginBottom:0 }}>{"\uD83D\uDED2 "}{t.products}</div>
+            <button onClick={()=>setProdSalesOpen(o=>!o)}
+              style={{ ...miniBtn, background: prodSalesOpen?C.ink:C.card, color: prodSalesOpen?C.bg:C.muted, borderColor: prodSalesOpen?C.ink:C.line }}>
+              {prodSalesOpen ? t.hideList : t.showList}
+            </button>
+          </div>
           {prodPerf.map((p,i)=>(
             <div key={i} style={row}>
               <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{p.name}</span>
@@ -1033,6 +1047,27 @@ function SalesPage({ sales, setSales, workers, tips, productSales, setProductSal
               <span style={{ fontWeight:800, color:C.brass, minWidth:70, textAlign:"end" }}>{fmt(p.total)}</span>
             </div>
           ))}
+          {prodSalesOpen && (
+            <div style={{ marginTop:12 }}>
+              <div style={{ ...sectionLbl, marginBottom:8 }}>{t.productSalesList}</div>
+              {filteredProducts.length===0 ? <Empty text={t.noSales} /> : filteredProducts.map(ps=>(
+                <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
+                      {(ps.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}
+                    </span>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontWeight:800, color:C.brass }}>{fmt(Number(ps.subtotal))}</span>
+                      <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>delProductSale(ps.id)}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize:12, color:C.muted, textAlign:"end" }}>
+                    {ps.sold_at}{timeLabel(ps.created_at) ? ` · ${timeLabel(ps.created_at)}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {perWorker.length>0 && (
