@@ -1807,7 +1807,9 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
   const [svcPrice, setSvcPrice] = useState("");
   const [prodN, setProdN] = useState("");
   const [prodPrice, setProdPrice] = useState("");
-  const [shopName, setShopName] = useState(shop?.name || "");
+  const curBranch = branches.find(b=>b.id===branchId);
+  const [branchName, setBranchName] = useState(curBranch?.name || "");
+  useEffect(()=>{ setBranchName(curBranch?.name || ""); }, [branchId]);
   const [currency, setCurrency] = useState(shop?.currency || "USD");
   const [savedMsg, setSavedMsg] = useState(false);
   const [pinVal, setPinVal] = useState("");
@@ -1889,7 +1891,13 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
   };
 
   const saveShop = async () => {
-    const { data, error } = await supabase.from("shops").update({ name: shopName, currency }).eq("id", shop.id).select().single();
+    // حفظ العملة (على مستوى المحل) + اسم الفرع الحالي
+    const { data, error } = await supabase.from("shops").update({ currency }).eq("id", shop.id).select().single();
+    const bn = branchName.trim();
+    if (bn && curBranch && bn !== curBranch.name) {
+      setBranches(branches.map(b=>b.id===branchId?{...b, name:bn}:b));
+      await supabase.from("branches").update({ name: bn }).eq("id", branchId);
+    }
     if (!error && data) { setShop(data); setSavedMsg(true); setTimeout(()=>setSavedMsg(false), 1500); }
   };
   const savePin = async () => {
@@ -1955,8 +1963,8 @@ function SettingsPage({ shop, setShop, branchId, branches, setBranches, switchBr
     <div>
       <div style={sectionLbl}>{t.settings}</div>
       <div style={{ ...formCard, marginBottom:20 }}>
-        <label style={lbl}>{t.shopName}</label>
-        <input value={shopName} onChange={(e)=>setShopName(e.target.value)} style={inp} />
+        <label style={lbl}>{t.branchName}</label>
+        <input value={branchName} onChange={(e)=>setBranchName(e.target.value)} style={inp} />
         <label style={lbl}>{t.currency}</label>
         <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:12 }}>
           {CURRENCIES.map(c=>(
