@@ -1545,6 +1545,8 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tipMonth, setTipMonth] = useState(null);  // شهر مفتوح (YYYY-MM)
+  const [tipDay, setTipDay] = useState(null);       // يوم مفتوح (YYYY-MM-DD)
   const curMonth = monthKey(todayISO());
   const monthTotalFor = (wid) => tips.filter(x=>x.worker_id===wid && monthKey(x.tip_date)===curMonth).reduce((sum,x)=>sum+Number(x.amount),0);
   // المبلغ غير المدفوع لكل عامل (هذا الشهر)
@@ -1568,11 +1570,27 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
     }
   };
   const worker = workers.find(w=>w.id===selected);
-  // بخشيشات الحلاق المختار لهذا الشهر (الأحدث أولاً)
+  // كل بخشيشات العامل المختار (الأحدث أولاً)
   const workerTips = selected
-    ? tips.filter(x=>x.worker_id===selected && monthKey(x.tip_date)===curMonth)
-        .sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""))
+    ? tips.filter(x=>x.worker_id===selected).sort((a,b)=> (b.created_at||"").localeCompare(a.created_at||""))
     : [];
+  // تجميع شهري: كل شهر مع مجموعه وغير المدفوع
+  const tipsByMonth = (() => {
+    const byM = {};
+    workerTips.forEach(x=>{ const mk=monthKey(x.tip_date); if(!byM[mk]) byM[mk]={total:0,unpaid:0,list:[]}; byM[mk].total+=Number(x.amount||0); if(!x.paid) byM[mk].unpaid+=Number(x.amount||0); byM[mk].list.push(x); });
+    return Object.entries(byM).map(([mk,v])=>({ mk, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
+  })();
+  // أيام الشهر المفتوح
+  const tipsByDay = (() => {
+    if (!tipMonth) return [];
+    const m = tipsByMonth.find(x=>x.mk===tipMonth);
+    if (!m) return [];
+    const byD = {};
+    m.list.forEach(x=>{ const d=x.tip_date; if(!byD[d]) byD[d]={total:0,unpaid:0,list:[]}; byD[d].total+=Number(x.amount||0); if(!x.paid) byD[d].unpaid+=Number(x.amount||0); byD[d].list.push(x); });
+    return Object.entries(byD).map(([d,v])=>({ d, ...v })).sort((a,b)=>b.d.localeCompare(a.d));
+  })();
+  // بخشيشات اليوم المفتوح
+  const dayTips = tipDay ? (tipsByDay.find(x=>x.d===tipDay)?.list || []) : [];
 
   // حذف بخشيشة
   const delTip = async (id) => {
@@ -1594,10 +1612,11 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
     const { data, error } = await supabase.from("tips").update({ paid: !current }).eq("id", id).select().single();
     if (!error && data) setTips(tips.map(x=>x.id===id?data:x));
   };
-  // دفع كل البخشيش غير المدفوع للعامل (هذا الشهر)
-  const payAll = async () => {
-    if (!selected) return;
-    const ids = workerTips.filter(x=>!x.paid).map(x=>x.id);
+  // دفع كل البخشيش غير المدفوع لشهر معيّن
+  const payAllMonth = async (mk) => {
+    const m = tipsByMonth.find(x=>x.mk===mk);
+    if (!m) return;
+    const ids = m.list.filter(x=>!x.paid).map(x=>x.id);
     if (ids.length===0) return;
     const { error } = await supabase.from("tips").update({ paid: true }).in("id", ids);
     if (!error) setTips(tips.map(x=>ids.includes(x.id)?{...x, paid:true}:x));
@@ -1614,7 +1633,7 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
           {workers.map(w=>{
             const unpaid = unpaidFor(w.id);
             return (
-              <button key={w.id} onClick={()=>{ setSelected(w.id); setAmount(""); }} style={{ ...svcCard, padding:"16px 14px", borderColor:selected===w.id?C.brass:C.line, background:selected===w.id?"#fdf8ec":C.card }}>
+              <button key={w.id} onClick={()=>{ setSelected(w.id); setAmount(""); setTipMonth(null); setTipDay(null); }} style={{ ...svcCard, padding:"16px 14px", borderColor:selected===w.id?C.brass:C.line, background:selected===w.id?"#fdf8ec":C.card }}>
                 <div style={{ fontWeight:800, fontSize:16, color:C.ink }}>{w.name}</div>
                 <div style={{ fontSize:13, color:C.brassDark, fontWeight:700, marginTop:4 }}>{fmt(monthTotalFor(w.id))} {t.thisMonth}</div>
                 {monthTotalFor(w.id)>0 && (
@@ -1638,33 +1657,61 @@ function TipsPage({ shop, branchId, workers, tips, setTips, t, lang, fmt }) {
           {workerTips.length>0 && (
             <div style={{ marginTop:16, borderTop:`1px solid ${C.line}`, paddingTop:14 }}>
               <div style={{ ...sectionLbl, marginBottom:10 }}>{t.tipHistory}</div>
-              {(() => {
-                const unpaid = workerTips.filter(x=>!x.paid).reduce((s,x)=>s+Number(x.amount),0);
-                return unpaid>0 ? (
-                  <button onClick={payAll} style={{ ...doneBtn, background:C.green, marginBottom:14 }}>
-                    ✓ {t.payAll} ({fmt(unpaid)} {t.unpaid})
+              {tipsByMonth.map(m=>(
+                <div key={m.mk} style={{ marginBottom:8 }}>
+                  {/* صف الشهر */}
+                  <button onClick={()=>{ setTipMonth(tipMonth===m.mk?null:m.mk); setTipDay(null); }}
+                    style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: tipMonth===m.mk?4:0,
+                      borderColor: tipMonth===m.mk?C.brass:C.line, background: tipMonth===m.mk?"#fdf8ec":C.card }}>
+                    <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{monthLabel(m.mk, lang)}</span>
+                    {m.unpaid>0 ? <span style={{ fontSize:12, color:C.red, fontWeight:800, marginInlineEnd:10 }}>{fmt(m.unpaid)} {t.unpaid}</span>
+                               : <span style={{ fontSize:12, color:C.green, fontWeight:800, marginInlineEnd:10 }}>✓</span>}
+                    <span style={{ fontWeight:800, color:C.brassDark }}>{fmt(m.total)}</span>
                   </button>
-                ) : (
-                  <div style={{ textAlign:"center", color:C.green, fontWeight:800, fontSize:14, marginBottom:14 }}>{t.allPaid} ✓</div>
-                );
-              })()}
-              {workerTips.map(x=>(
-                <div key={x.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.line}`, opacity:x.paid?.55:1 }}>
-                  <div style={{ display:"flex", flexDirection:"column" }}>
-                    <span style={{ fontWeight:800, color:x.paid?C.green:C.brassDark, fontSize:15 }}>{fmt(Number(x.amount))}</span>
-                    <span style={{ fontSize:12, color:C.muted }}>
-                      {x.tip_date}{timeLabel(x.created_at)?` · ${timeLabel(x.created_at)}`:""}{x.from_sale?` · ${t.fromSale}`:""}
-                    </span>
-                    {x.paid && <span style={{ fontSize:11, color:C.green, fontWeight:800, marginTop:2 }}>✓ {t.paidLabel}</span>}
-                  </div>
-                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-                    <button style={x.paid ? { ...miniBtn, borderColor:C.green, background:C.green, color:"#fff" } : { ...miniBtn, borderColor:C.green, color:C.green }}
-                      onClick={()=>togglePaid(x.id, x.paid)}>
-                      {x.paid ? `✓ ${t.paidLabel}` : t.markPaid}
-                    </button>
-                    <button style={miniBtn} onClick={()=>editTip(x.id, x.amount)}>{t.edit}</button>
-                    <button style={{ ...miniBtn, color:C.red }} onClick={()=>delTip(x.id)}>{t.delete}</button>
-                  </div>
+
+                  {/* أيام الشهر المفتوح */}
+                  {tipMonth===m.mk && (
+                    <div style={{ marginInlineStart:12 }}>
+                      {m.unpaid>0 && (
+                        <button onClick={()=>payAllMonth(m.mk)} style={{ ...doneBtn, background:C.green, marginBottom:10 }}>
+                          ✓ {t.payAll} ({fmt(m.unpaid)} {t.unpaid})
+                        </button>
+                      )}
+                      {tipsByDay.map(day=>(
+                        <div key={day.d} style={{ marginBottom:6 }}>
+                          {/* صف اليوم */}
+                          <button onClick={()=>setTipDay(tipDay===day.d?null:day.d)}
+                            style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:14, marginBottom: tipDay===day.d?4:0,
+                              borderColor: tipDay===day.d?C.brass:C.line, background: tipDay===day.d?"#fdf8ec":C.card }}>
+                            <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{day.d}</span>
+                            {day.unpaid>0 && <span style={{ fontSize:11, color:C.red, fontWeight:800, marginInlineEnd:10 }}>{fmt(day.unpaid)}</span>}
+                            <span style={{ fontWeight:800, color:C.brassDark }}>{fmt(day.total)}</span>
+                          </button>
+
+                          {/* بخشيشات اليوم المفتوح */}
+                          {tipDay===day.d && day.list.map(x=>(
+                            <div key={x.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0 8px 12px", borderBottom:`1px solid ${C.line}`, opacity:x.paid?.55:1 }}>
+                              <div style={{ display:"flex", flexDirection:"column" }}>
+                                <span style={{ fontWeight:800, color:x.paid?C.green:C.brassDark, fontSize:15 }}>{fmt(Number(x.amount))}</span>
+                                <span style={{ fontSize:12, color:C.muted }}>
+                                  {timeLabel(x.created_at)||x.tip_date}{x.from_sale?` · ${t.fromSale}`:""}
+                                </span>
+                                {x.paid && <span style={{ fontSize:11, color:C.green, fontWeight:800, marginTop:2 }}>✓ {t.paidLabel}</span>}
+                              </div>
+                              <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap", justifyContent:"flex-end" }}>
+                                <button style={x.paid ? { ...miniBtn, borderColor:C.green, background:C.green, color:"#fff" } : { ...miniBtn, borderColor:C.green, color:C.green }}
+                                  onClick={()=>togglePaid(x.id, x.paid)}>
+                                  {x.paid ? `✓ ${t.paidLabel}` : t.markPaid}
+                                </button>
+                                <button style={miniBtn} onClick={()=>editTip(x.id, x.amount)}>{t.edit}</button>
+                                <button style={{ ...miniBtn, color:C.red }} onClick={()=>delTip(x.id)}>{t.delete}</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
