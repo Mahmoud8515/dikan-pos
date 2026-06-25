@@ -972,7 +972,9 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
   const [tipsWorker, setTipsWorker] = useState(null);  // عامل مختار لعرض سجل بخشيشه الشهري
   const [prodView, setProdView] = useState(null);  // null=مخفي, "all"=الكل, أو اسم منتج
   const [expandMonth, setExpandMonth] = useState(null);      // شهر متوسّع بمبيعات الحلاق (وضع All)
+  const [expandDay, setExpandDay] = useState(null);          // يوم متوسّع داخل الشهر (وضع All)
   const [expandProdMonth, setExpandProdMonth] = useState(null); // شهر متوسّع بمبيعات المنتجات (وضع All)
+  const [expandProdDay, setExpandProdDay] = useState(null);  // يوم متوسّع داخل شهر المنتجات (وضع All)
   const wName = (id) => workers.find(w=>w.id===id)?.name || "—";
   const today = todayISO();
 
@@ -1185,29 +1187,66 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
               {groupSales ? (
                 shownProdByMonth.length===0 ? <Empty text={t.noSales} /> : shownProdByMonth.map(m=>(
                   <div key={m.mk} style={{ marginBottom:8 }}>
-                    <button onClick={()=>setExpandProdMonth(expandProdMonth===m.mk?null:m.mk)}
+                    <button onClick={()=>{ setExpandProdMonth(expandProdMonth===m.mk?null:m.mk); setExpandProdDay(null); }}
                       style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: expandProdMonth===m.mk?4:0,
                         borderColor: expandProdMonth===m.mk?C.brass:C.line, background: expandProdMonth===m.mk?"#fdf8ec":C.card }}>
                       <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{period==="all" ? monthLabel(m.mk, lang) : m.mk}</span>
                       <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{m.count}×</span>
                       <span style={{ fontWeight:800, color:C.brass }}>{fmt(m.total)}</span>
                     </button>
-                    {expandProdMonth===m.mk && m.list.map(ps=>(
-                      <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                          <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
-                            {(ps.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}
-                          </span>
-                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <span style={{ fontWeight:800, color:C.brass }}>{fmt(Number(ps.subtotal))}</span>
-                            <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>delProductSale(ps.id)}>✕</button>
+                    {expandProdMonth===m.mk && (
+                      period==="month" ? (
+                        m.list.map(ps=>(
+                          <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                              <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
+                                {(ps.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}
+                              </span>
+                              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                                <span style={{ fontWeight:800, color:C.brass }}>{fmt(Number(ps.subtotal))}</span>
+                                <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>delProductSale(ps.id)}>✕</button>
+                              </div>
+                            </div>
+                            <div style={{ fontSize:12, color:C.muted, textAlign:"end" }}>
+                              {ps.sold_at}{timeLabel(ps.created_at) ? ` · ${timeLabel(ps.created_at)}` : ""}
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ fontSize:12, color:C.muted, textAlign:"end" }}>
-                          {ps.sold_at}{timeLabel(ps.created_at) ? ` · ${timeLabel(ps.created_at)}` : ""}
-                        </div>
-                      </div>
-                    ))}
+                        ))
+                      ) : (
+                        (() => {
+                          const byD = {};
+                          m.list.forEach(ps=>{ const d=ps.sold_at; if(!byD[d]) byD[d]={total:0,count:0,list:[]}; byD[d].total+=Number(ps.subtotal||0); byD[d].count++; byD[d].list.push(ps); });
+                          const days = Object.entries(byD).map(([d,v])=>({ d, ...v })).sort((a,b)=>b.d.localeCompare(a.d));
+                          return days.map(day=>(
+                            <div key={day.d} style={{ marginInlineStart:12, marginBottom:6 }}>
+                              <button onClick={()=>setExpandProdDay(expandProdDay===day.d?null:day.d)}
+                                style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:14, marginBottom: expandProdDay===day.d?4:0,
+                                  borderColor: expandProdDay===day.d?C.brass:C.line, background: expandProdDay===day.d?"#fdf8ec":C.card }}>
+                                <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{day.d}</span>
+                                <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{day.count}×</span>
+                                <span style={{ fontWeight:800, color:C.brass }}>{fmt(day.total)}</span>
+                              </button>
+                              {expandProdDay===day.d && day.list.map(ps=>(
+                                <div key={ps.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
+                                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                                    <span style={{ fontWeight:800, color:C.ink, fontSize:14 }}>
+                                      {(ps.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}
+                                    </span>
+                                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                                      <span style={{ fontWeight:800, color:C.brass }}>{fmt(Number(ps.subtotal))}</span>
+                                      <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>delProductSale(ps.id)}>✕</button>
+                                    </div>
+                                  </div>
+                                  <div style={{ fontSize:12, color:C.muted, textAlign:"end" }}>
+                                    {timeLabel(ps.created_at) || ps.sold_at}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ));
+                        })()
+                      )
+                    )}
                   </div>
                 ))
               ) : shownProductSales.length===0 ? <Empty text={t.noSales} /> : shownProductSales.map(ps=>(
@@ -1265,29 +1304,68 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
       {salesView && groupSales ? (
         shownSalesByMonth.length===0 ? <Empty text={t.noSales} /> : shownSalesByMonth.map(m=>(
           <div key={m.mk} style={{ marginBottom:8 }}>
-            <button onClick={()=>setExpandMonth(expandMonth===m.mk?null:m.mk)}
+            <button onClick={()=>{ setExpandMonth(expandMonth===m.mk?null:m.mk); setExpandDay(null); }}
               style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: expandMonth===m.mk?4:0,
                 borderColor: expandMonth===m.mk?C.brass:C.line, background: expandMonth===m.mk?"#fdf8ec":C.card }}>
               <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{period==="all" ? monthLabel(m.mk, lang) : m.mk}</span>
               <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{m.count} {t.cuts}</span>
               <span style={{ fontWeight:800, color:C.green }}>{fmt(m.total)}</span>
             </button>
-            {expandMonth===m.mk && m.list.map(s=>(
-              <div key={s.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontWeight:800, color:C.ink }}>{wName(s.worker_id)}</span>
-                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <span style={{ fontWeight:800, color:C.green }}>{fmt(Number(s.subtotal))}</span>
-                    {Number(s.tip)>0 && <span style={{ fontSize:12, color:C.brassDark }}>+{fmt(Number(s.tip))}</span>}
-                    <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>del(s.id)}>✕</button>
+            {expandMonth===m.mk && (
+              period==="month" ? (
+                // وضع Month: الشهر نفسه يوم → عرض العمليات مباشرة
+                m.list.map(s=>(
+                  <div key={s.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span style={{ fontWeight:800, color:C.ink }}>{wName(s.worker_id)}</span>
+                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <span style={{ fontWeight:800, color:C.green }}>{fmt(Number(s.subtotal))}</span>
+                        {Number(s.tip)>0 && <span style={{ fontSize:12, color:C.brassDark }}>+{fmt(Number(s.tip))}</span>}
+                        <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>del(s.id)}>✕</button>
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:C.muted }}>
+                      <span>{(s.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}</span>
+                      <span>{s.sold_at}{timeLabel(s.created_at) ? ` · ${timeLabel(s.created_at)}` : ""}</span>
+                    </div>
                   </div>
-                </div>
-                <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:C.muted }}>
-                  <span>{(s.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}</span>
-                  <span>{s.sold_at}{timeLabel(s.created_at) ? ` · ${timeLabel(s.created_at)}` : ""}</span>
-                </div>
-              </div>
-            ))}
+                ))
+              ) : (
+                // وضع All: الشهر → أيام → عمليات
+                (() => {
+                  const byD = {};
+                  m.list.forEach(s=>{ const d=s.sold_at; if(!byD[d]) byD[d]={total:0,count:0,list:[]}; byD[d].total+=Number(s.subtotal||0); byD[d].count++; byD[d].list.push(s); });
+                  const days = Object.entries(byD).map(([d,v])=>({ d, ...v })).sort((a,b)=>b.d.localeCompare(a.d));
+                  return days.map(day=>(
+                    <div key={day.d} style={{ marginInlineStart:12, marginBottom:6 }}>
+                      <button onClick={()=>setExpandDay(expandDay===day.d?null:day.d)}
+                        style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:14, marginBottom: expandDay===day.d?4:0,
+                          borderColor: expandDay===day.d?C.brass:C.line, background: expandDay===day.d?"#fdf8ec":C.card }}>
+                        <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{day.d}</span>
+                        <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{day.count} {t.cuts}</span>
+                        <span style={{ fontWeight:800, color:C.green }}>{fmt(day.total)}</span>
+                      </button>
+                      {expandDay===day.d && day.list.map(s=>(
+                        <div key={s.id} style={{ ...row, flexDirection:"column", alignItems:"stretch", gap:4, marginInlineStart:12 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                            <span style={{ fontWeight:800, color:C.ink }}>{wName(s.worker_id)}</span>
+                            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                              <span style={{ fontWeight:800, color:C.green }}>{fmt(Number(s.subtotal))}</span>
+                              {Number(s.tip)>0 && <span style={{ fontSize:12, color:C.brassDark }}>+{fmt(Number(s.tip))}</span>}
+                              <button style={{ ...delBtn, padding:"2px 8px" }} onClick={()=>del(s.id)}>✕</button>
+                            </div>
+                          </div>
+                          <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:C.muted }}>
+                            <span>{(s.items||[]).map(i=>`${i.name}${i.qty>1?` ×${i.qty}`:""}`).join(" + ")}</span>
+                            <span>{timeLabel(s.created_at) || s.sold_at}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()
+              )
+            )}
           </div>
         ))
       ) : salesView && (shownSales.length===0 ? <Empty text={t.noSales} /> : shownSales.map(s=>(
