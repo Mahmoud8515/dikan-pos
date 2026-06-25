@@ -1048,12 +1048,13 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
     : salesView ? filtered.filter(s=>s.worker_id===salesView)
     : [];
 
-  // تجميع المبيعات المعروضة شهرياً (يُستخدم فقط مع فلتر All لتجنّب القوائم الطويلة)
+  // تجميع المبيعات المعروضة: شهرياً مع All، يومياً مع Month (لتجنّب القوائم الطويلة)
+  const groupSales = period==="all" || period==="month";
   const shownSalesByMonth = (() => {
-    if (period!=="all") return [];
-    const byM = {};
-    shownSales.forEach(s=>{ const mk=monthKey(s.sold_at); if(!byM[mk]) byM[mk]={total:0,count:0,list:[]}; byM[mk].total+=Number(s.subtotal||0); byM[mk].count++; byM[mk].list.push(s); });
-    return Object.entries(byM).map(([mk,v])=>({ mk, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
+    if (!groupSales) return [];
+    const byK = {};
+    shownSales.forEach(s=>{ const k = period==="all" ? monthKey(s.sold_at) : s.sold_at; if(!byK[k]) byK[k]={total:0,count:0,list:[]}; byK[k].total+=Number(s.subtotal||0); byK[k].count++; byK[k].list.push(s); });
+    return Object.entries(byK).map(([k,v])=>({ mk:k, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
   })();
 
   // عمليات بيع المنتجات المعروضة: حسب الفلتر (الكل أو منتج معيّن)
@@ -1061,12 +1062,12 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
     : prodView ? filteredProducts.filter(ps=>(ps.items||[]).some(i=>i.name===prodView))
     : [];
 
-  // تجميع مبيعات المنتجات شهرياً (فقط مع All)
+  // تجميع مبيعات المنتجات: شهرياً مع All، يومياً مع Month
   const shownProdByMonth = (() => {
-    if (period!=="all") return [];
-    const byM = {};
-    shownProductSales.forEach(ps=>{ const mk=monthKey(ps.sold_at); if(!byM[mk]) byM[mk]={total:0,count:0,list:[]}; byM[mk].total+=Number(ps.subtotal||0); byM[mk].count++; byM[mk].list.push(ps); });
-    return Object.entries(byM).map(([mk,v])=>({ mk, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
+    if (!groupSales) return [];
+    const byK = {};
+    shownProductSales.forEach(ps=>{ const k = period==="all" ? monthKey(ps.sold_at) : ps.sold_at; if(!byK[k]) byK[k]={total:0,count:0,list:[]}; byK[k].total+=Number(ps.subtotal||0); byK[k].count++; byK[k].list.push(ps); });
+    return Object.entries(byK).map(([k,v])=>({ mk:k, ...v })).sort((a,b)=>b.mk.localeCompare(a.mk));
   })();
 
   // سجل البخشيش الشهري (كل الشهور، مستقل عن فلتر الفترة)
@@ -1181,13 +1182,13 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
               <div style={{ ...sectionLbl, marginBottom:8 }}>
                 {t.productSalesList}{prodView!=="all" ? ` · ${prodView}` : ""}
               </div>
-              {period==="all" ? (
+              {groupSales ? (
                 shownProdByMonth.length===0 ? <Empty text={t.noSales} /> : shownProdByMonth.map(m=>(
                   <div key={m.mk} style={{ marginBottom:8 }}>
                     <button onClick={()=>setExpandProdMonth(expandProdMonth===m.mk?null:m.mk)}
                       style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: expandProdMonth===m.mk?4:0,
                         borderColor: expandProdMonth===m.mk?C.brass:C.line, background: expandProdMonth===m.mk?"#fdf8ec":C.card }}>
-                      <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{monthLabel(m.mk, lang)}</span>
+                      <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{period==="all" ? monthLabel(m.mk, lang) : m.mk}</span>
                       <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{m.count}×</span>
                       <span style={{ fontWeight:800, color:C.brass }}>{fmt(m.total)}</span>
                     </button>
@@ -1261,13 +1262,13 @@ function SalesPage({ sales, setSales, workers, tips, setTips, productSales, setP
           {shownSales.length>0 && <button style={exportBtn} onClick={exportCSV}>{t.export}</button>}
         </div>
       )}
-      {salesView && period==="all" ? (
+      {salesView && groupSales ? (
         shownSalesByMonth.length===0 ? <Empty text={t.noSales} /> : shownSalesByMonth.map(m=>(
           <div key={m.mk} style={{ marginBottom:8 }}>
             <button onClick={()=>setExpandMonth(expandMonth===m.mk?null:m.mk)}
               style={{ ...row, width:"100%", textAlign:"start", cursor:"pointer", boxSizing:"border-box", fontFamily:"inherit", fontSize:15, marginBottom: expandMonth===m.mk?4:0,
                 borderColor: expandMonth===m.mk?C.brass:C.line, background: expandMonth===m.mk?"#fdf8ec":C.card }}>
-              <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{monthLabel(m.mk, lang)}</span>
+              <span style={{ fontWeight:700, color:C.ink, flex:1 }}>{period==="all" ? monthLabel(m.mk, lang) : m.mk}</span>
               <span style={{ color:C.muted, fontSize:13, marginInlineEnd:14 }}>{m.count} {t.cuts}</span>
               <span style={{ fontWeight:800, color:C.green }}>{fmt(m.total)}</span>
             </button>
